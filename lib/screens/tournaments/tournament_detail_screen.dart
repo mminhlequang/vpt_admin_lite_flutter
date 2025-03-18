@@ -281,7 +281,6 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
 
     // Giả lập tải dữ liệu từ API
     await Future.delayed(const Duration(seconds: 1));
-
     // Tạo dữ liệu mẫu
     final team1 = Team(
       id: 'team_1',
@@ -383,6 +382,306 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
       ],
     );
 
+    final team5 = Team(
+      id: 'team_5',
+      name: 'Đặng I & Hồ J',
+      players: [
+        Player(
+          id: 9,
+          name: 'Đặng Văn I',
+          sex: 1,
+          phone: '0901234111',
+          email: 'dangvani@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 10,
+          name: 'Hồ Thị J',
+          sex: 2,
+          phone: '0901234222',
+          email: 'hothij@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team6 = Team(
+      id: 'team_6',
+      name: 'Bùi K & Đinh L',
+      players: [
+        Player(
+          id: 11,
+          name: 'Bùi Văn K',
+          sex: 1,
+          phone: '0901234333',
+          email: 'buivank@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 12,
+          name: 'Đinh Thị L',
+          sex: 2,
+          phone: '0901234444',
+          email: 'dinhthil@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team7 = Team(
+      id: 'team_7',
+      name: 'Dương M & Lý N',
+      players: [
+        Player(
+          id: 13,
+          name: 'Dương Văn M',
+          sex: 1,
+          phone: '0901234555',
+          email: 'duongvanm@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 14,
+          name: 'Lý Thị N',
+          sex: 2,
+          phone: '0901234666',
+          email: 'lythin@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team8 = Team(
+      id: 'team_8',
+      name: 'Phan O & Võ P',
+      players: [
+        Player(
+          id: 15,
+          name: 'Phan Văn O',
+          sex: 1,
+          phone: '0901234777',
+          email: 'phanvano@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 16,
+          name: 'Võ Thị P',
+          sex: 2,
+          phone: '0901234888',
+          email: 'vothip@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team9 = Team(
+      id: 'team_9',
+      name: 'Đỗ Q & Huỳnh R',
+      players: [
+        Player(
+          id: 17,
+          name: 'Đỗ Văn Q',
+          sex: 1,
+          phone: '0901234999',
+          email: 'dovanq@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 18,
+          name: 'Huỳnh Thị R',
+          sex: 2,
+          phone: '0901235000',
+          email: 'huynhthir@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team10 = Team(
+      id: 'team_10',
+      name: 'Trịnh S & Mai T',
+      players: [
+        Player(
+          id: 19,
+          name: 'Trịnh Văn S',
+          sex: 1,
+          phone: '0901235111',
+          email: 'trinhvans@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 20,
+          name: 'Mai Thị T',
+          sex: 2,
+          phone: '0901235222',
+          email: 'maithit@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team11 = Team(
+      id: 'team_11',
+      name: 'Châu U & Tống V',
+      players: [
+        Player(
+          id: 21,
+          name: 'Châu Văn U',
+          sex: 1,
+          phone: '0901235333',
+          email: 'chauvanu@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 22,
+          name: 'Tống Thị V',
+          sex: 2,
+          phone: '0901235444',
+          email: 'tongthiv@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team12 = Team(
+      id: 'team_12',
+      name: 'Thái X & Lâm Y',
+      players: [
+        Player(
+          id: 23,
+          name: 'Thái Văn X',
+          sex: 1,
+          phone: '0901235555',
+          email: 'thaivanx@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 24,
+          name: 'Lâm Thị Y',
+          sex: 2,
+          phone: '0901235666',
+          email: 'lamthiy@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team13 = Team(
+      id: 'team_13',
+      name: 'Triệu Z & Cao AA',
+      players: [
+        Player(
+          id: 25,
+          name: 'Triệu Văn Z',
+          sex: 1,
+          phone: '0901235777',
+          email: 'trieuvanz@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 26,
+          name: 'Cao Thị AA',
+          sex: 2,
+          phone: '0901235888',
+          email: 'caothiaa@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team14 = Team(
+      id: 'team_14',
+      name: 'Diệp BB & Hà CC',
+      players: [
+        Player(
+          id: 27,
+          name: 'Diệp Văn BB',
+          sex: 1,
+          phone: '0901235999',
+          email: 'diepvanbb@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 28,
+          name: 'Hà Thị CC',
+          sex: 2,
+          phone: '0901236000',
+          email: 'hathicc@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team15 = Team(
+      id: 'team_15',
+      name: 'Quách DD & Tô EE',
+      players: [
+        Player(
+          id: 29,
+          name: 'Quách Văn DD',
+          sex: 1,
+          phone: '0901236111',
+          email: 'quachvandd@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 30,
+          name: 'Tô Thị EE',
+          sex: 2,
+          phone: '0901236222',
+          email: 'tothiee@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
+    final team16 = Team(
+      id: 'team_16',
+      name: 'Mạc FF & Đoàn GG',
+      players: [
+        Player(
+          id: 31,
+          name: 'Mạc Văn FF',
+          sex: 1,
+          phone: '0901236333',
+          email: 'macvanff@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+        Player(
+          id: 32,
+          name: 'Đoàn Thị GG',
+          sex: 2,
+          phone: '0901236444',
+          email: 'doanthigg@example.com',
+          hasPaid: true,
+          status: RegistrationStatus.approved,
+        ),
+      ],
+    );
+
     // Tạo các trận đấu
     final match1 = Match(
       id: 'match_1',
@@ -417,6 +716,57 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
       courtNumber: 'Sân 1',
     );
 
+    final match4 = Match(
+      id: 'match_4',
+      team1: team5,
+      team2: team6,
+      score1: 21,
+      score2: 15,
+      status: MatchStatus.completed,
+      scheduledTime: DateTime.now().subtract(const Duration(days: 1, hours: 4)),
+      courtNumber: 'Sân 3',
+      winner: team5,
+    );
+
+    final match5 = Match(
+      id: 'match_5',
+      team1: team7,
+      team2: team8,
+      score1: 18,
+      score2: 21,
+      status: MatchStatus.completed,
+      scheduledTime: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
+      courtNumber: 'Sân 4',
+      winner: team8,
+    );
+
+    final match6 = Match(
+      id: 'match_6',
+      team1: team5,
+      team2: team8,
+      status: MatchStatus.scheduled,
+      scheduledTime: DateTime.now().add(const Duration(days: 1, hours: 4)),
+      courtNumber: 'Sân 2',
+    );
+
+    final match7 = Match(
+      id: 'match_7',
+      team1: team9,
+      team2: team10,
+      status: MatchStatus.scheduled,
+      scheduledTime: DateTime.now().add(const Duration(days: 2, hours: 1)),
+      courtNumber: 'Sân 1',
+    );
+
+    final match8 = Match(
+      id: 'match_8',
+      team1: team11,
+      team2: team12,
+      status: MatchStatus.scheduled,
+      scheduledTime: DateTime.now().add(const Duration(days: 2, hours: 3)),
+      courtNumber: 'Sân 2',
+    );
+
     final tournament = Tournament(
       id: 2,
       name: 'Giải Pickleball Mùa Hè 2023',
@@ -424,9 +774,26 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
       endDate: DateTime(2023, 7, 10),
       type: TournamentType.doubles,
       genderRestriction: GenderRestriction.mixed,
-      numberOfTeams: 4,
-      teams: [team1, team2, team3, team4],
-      matches: [match1, match2, match3],
+      numberOfTeams: 16,
+      teams: [
+        team1,
+        team2,
+        team3,
+        team4,
+        team5,
+        team6,
+        team7,
+        team8,
+        team9,
+        team10,
+        team11,
+        team12,
+        team13,
+        team14,
+        team15,
+        team16,
+      ],
+      matches: [match1, match2, match3, match4, match5, match6, match7, match8],
       status: TournamentStatus.ongoing,
       imageUrl: 'https://source.unsplash.com/random/800x600/?pickleball',
       description: '''

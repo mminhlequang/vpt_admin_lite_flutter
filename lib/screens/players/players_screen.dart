@@ -43,13 +43,14 @@ class _PlayersScreenState extends State<PlayersScreen> {
         options: Options(
           headers: {
             'accept': '*/*',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers':
-              'Origin, Content-Type, Accept, Authorization',
-          'cors-mode': 'no-cors',
-          "content-type": "application/json",
-        },)
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers':
+                'Origin, Content-Type, Accept, Authorization',
+            'cors-mode': 'no-cors',
+            "content-type": "application/json",
+          },
+        ),
       );
 
       if (response.statusCode == 200) {
