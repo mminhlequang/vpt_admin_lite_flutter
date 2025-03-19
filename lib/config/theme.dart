@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {
@@ -26,8 +27,27 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
 
-      // Chữ
-      fontFamily: 'Roboto',
+      // Chữ - Thay đổi font thành Fredoka
+      textTheme: GoogleFonts.fredokaTextTheme().copyWith(
+        displayLarge: GoogleFonts.fredoka(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+        displayMedium: GoogleFonts.fredoka(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+        titleLarge: GoogleFonts.fredoka(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+        bodyLarge: GoogleFonts.fredoka(fontSize: 16, color: Colors.black87),
+        bodyMedium: GoogleFonts.fredoka(fontSize: 14, color: Colors.black87),
+      ),
+      fontFamily: GoogleFonts.fredoka().fontFamily,
 
       // Input
       inputDecorationTheme: InputDecorationTheme(

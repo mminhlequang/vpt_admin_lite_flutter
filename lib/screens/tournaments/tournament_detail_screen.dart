@@ -1227,24 +1227,24 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
         return PlayerListItem(
           player: player,
           showDetailedInfo: true,
-          onApprove:
-              player.status == RegistrationStatus.pending
-                  ? () => _updatePlayerRegistrationStatus(
-                    player,
-                    RegistrationStatus.approved,
-                  )
-                  : null,
-          onReject:
-              player.status == RegistrationStatus.pending
-                  ? () => _updatePlayerRegistrationStatus(
-                    player,
-                    RegistrationStatus.rejected,
-                  )
-                  : null,
-          onTogglePaid:
-              player.status == RegistrationStatus.approved
-                  ? () => _togglePlayerPaidStatus(player)
-                  : null,
+          // onApprove:
+          //     player.status == RegistrationStatus.pending
+          //         ? () => _updatePlayerRegistrationStatus(
+          //           player,
+          //           RegistrationStatus.approved,
+          //         )
+          //         : null,
+          // onReject:
+          //     player.status == RegistrationStatus.pending
+          //         ? () => _updatePlayerRegistrationStatus(
+          //           player,
+          //           RegistrationStatus.rejected,
+          //         )
+          //         : null,
+          // onTogglePaid:
+          //     player.status == RegistrationStatus.approved
+          //         ? () => _togglePlayerPaidStatus(player)
+          //         : null,
         );
       },
     );

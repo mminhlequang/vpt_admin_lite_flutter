@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/player.dart';
 import '../../utils/constants.dart';
+import 'edit_player_screen.dart';
 
 class PlayerDetailScreen extends StatefulWidget {
   final Player player;
@@ -238,11 +239,25 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
         OutlinedButton.icon(
           onPressed: () {
             // Xử lý chỉnh sửa
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Chức năng chỉnh sửa sẽ được triển khai sau'),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EditPlayerScreen(player: _player),
               ),
-            );
+            ).then((result) {
+              if (result == true) {
+                // Nếu cập nhật thành công, tải lại thông tin người chơi
+                // Trong trường hợp thực tế, cần gọi API để lấy dữ liệu mới nhất
+                setState(() {
+                  // Reload player data
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã cập nhật thông tin người chơi'),
+                  ),
+                );
+              }
+            });
           },
           icon: const Icon(Icons.edit),
           label: const Text('Chỉnh sửa'),

@@ -2,10 +2,33 @@ import 'package:flutter/material.dart';
 import '../../models/player.dart';
 import '../../widgets/player/player_list_item.dart';
 import '../../utils/constants.dart';
-import '../../services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'dart:convert';
 import 'player_detail_screen.dart';
+import 'create_player_screen.dart';
+
+Future<List<Player>> fetchPlayers() async {
+  List<Player> playersList = [];
+  // Gọi API thực tế để lấy danh sách người chơi
+  final response = await Dio().get('https://familyworld.xyz/api/player');
+
+  if (response.statusCode == 200) {
+    final data = json.decode(jsonEncode(response.data));
+
+    // Chuyển đổi dữ liệu từ API thành danh sách Player
+    if (data is List) {
+      playersList = data.map((item) => Player.fromJson(item)).toList();
+    } else if (data['data'] is List) {
+      playersList =
+          (data['data'] as List).map((item) => Player.fromJson(item)).toList();
+    }
+
+    return playersList;
+  } else {
+    print('Không thể tải dữ liệu từ API: ${response.statusCode}');
+    return playersList;
+  }
+}
 
 class PlayersScreen extends StatefulWidget {
   const PlayersScreen({Key? key}) : super(key: key);
@@ -36,53 +59,10 @@ class _PlayersScreenState extends State<PlayersScreen> {
       _isLoading = true;
     });
 
-    try {
-      // Gọi API thực tế để lấy danh sách người chơi
-      final response = await Dio().get(
-        'https://familyworld.xyz/api/player',
-        options: Options(
-          headers: {
-            'accept': '*/*',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers':
-                'Origin, Content-Type, Accept, Authorization',
-            'cors-mode': 'no-cors',
-            "content-type": "application/json",
-          },
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.data);
-
-        // Chuyển đổi dữ liệu từ API thành danh sách Player
-        List<Player> playersList = [];
-        if (data is List) {
-          playersList = data.map((item) => Player.fromJson(item)).toList();
-        } else if (data['data'] is List) {
-          playersList =
-              (data['data'] as List)
-                  .map((item) => Player.fromJson(item))
-                  .toList();
-        }
-
-        setState(() {
-          _players = playersList;
-          _isLoading = false;
-        });
-      } else {
-        throw Exception('Không thể tải dữ liệu từ API: ${response.statusCode}');
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi tải danh sách người chơi: $e')),
-      );
-    }
+    _players = await fetchPlayers();
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   List<Player> _getFilteredPlayers() {
@@ -148,13 +128,13 @@ class _PlayersScreenState extends State<PlayersScreen> {
             onTap: () => _navigateToPlayerDetail(player),
             child: PlayerListItem(
               player: player,
-              onApprove:
-                  () =>
-                      _updatePlayerStatus(player, RegistrationStatus.approved),
-              onReject:
-                  () =>
-                      _updatePlayerStatus(player, RegistrationStatus.rejected),
-              onTogglePaid: () => _togglePlayerPaidStatus(player),
+              // onApprove:
+              //     () =>
+              //         _updatePlayerStatus(player, RegistrationStatus.approved),
+              // onReject:
+              //     () =>
+              //         _updatePlayerStatus(player, RegistrationStatus.rejected),
+              // onTogglePaid: () => _togglePlayerPaidStatus(player),
             ),
           );
         },
@@ -208,20 +188,15 @@ class _PlayersScreenState extends State<PlayersScreen> {
   }
 
   void _showAddPlayerDialog() {
-    // Hiển thị dialog thêm người chơi mới
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Thêm người chơi mới'),
-            content: const Text('Chức năng này sẽ được triển khai sau'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Đóng'),
-              ),
-            ],
-          ),
-    );
+    // Điều hướng đến màn hình tạo người chơi mới
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreatePlayerScreen()),
+    ).then((result) {
+      // Nếu tạo người chơi thành công, cập nhật lại danh sách
+      if (result == true) {
+        _loadPlayers();
+      }
+    });
   }
 }

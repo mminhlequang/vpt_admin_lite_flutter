@@ -3,24 +3,20 @@ import '../../models/player.dart';
 
 class PlayerListItem extends StatelessWidget {
   final Player player;
-  final VoidCallback? onApprove;
-  final VoidCallback? onReject;
-  final VoidCallback? onTogglePaid;
   final bool showDetailedInfo;
 
   const PlayerListItem({
     Key? key,
     required this.player,
-    this.onApprove,
-    this.onReject,
-    this.onTogglePaid,
     this.showDetailedInfo = false,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 2,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -35,31 +31,32 @@ class PlayerListItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        player.name,
+                        player.name.isEmpty ? 'Chưa đặt tên' : player.name,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      _buildBasicInfoItem(
+                        Icons.email,
+                        'Email:',
+                        player.email ?? 'Không rõ',
+                      ),
                       const SizedBox(height: 4),
-                      if (player.email != null)
-                        Text(
-                          player.email!,
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      const SizedBox(height: 4),
-                      if (player.phone != null)
-                        Text(
-                          player.phone!,
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
+                      _buildBasicInfoItem(
+                        Icons.phone,
+                        'SĐT:',
+                        player.phone ?? 'Không rõ',
+                      ),
                     ],
                   ),
                 ),
-                _buildStatusBadge(),
               ],
             ),
             const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -71,6 +68,7 @@ class PlayerListItem extends StatelessWidget {
                           player.gender == 'male'
                               ? Colors.blue
                               : Colors.pinkAccent,
+                      size: 20,
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -80,28 +78,37 @@ class PlayerListItem extends StatelessWidget {
                             player.gender == 'male'
                                 ? Colors.blue
                                 : Colors.pinkAccent,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.payments,
-                      color:
-                          player.hasPaid ? Colors.green[700] : Colors.grey[400],
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      player.hasPaid ? 'Đã thanh toán' : 'Chưa thanh toán',
-                      style: TextStyle(
-                        color:
-                            player.hasPaid
-                                ? Colors.green[700]
-                                : Colors.grey[400],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.military_tech,
+                        size: 16,
+                        color: Colors.amber[800],
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        'Hạng: ${player.rank > 0 ? player.rank.toString() : "Chưa xếp hạng"}',
+                        style: TextStyle(
+                          color: Colors.amber[800],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -126,7 +133,11 @@ class PlayerListItem extends StatelessWidget {
     if (player.avatar != null) {
       return CircleAvatar(
         radius: 28,
-        backgroundImage: NetworkImage(player.avatar!),
+        backgroundImage: NetworkImage(
+          player.avatar!.startsWith("http") == true
+              ? player.avatar!
+              : "https://familyworld.xyz/${player.avatar}",
+        ),
         backgroundColor: Colors.grey[200],
       );
     }
@@ -147,72 +158,187 @@ class PlayerListItem extends StatelessWidget {
     );
   }
 
+  Widget _buildBasicInfoItem(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 14),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPlayerDetailedInfo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Thông tin chi tiết',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text(
+            'Thông tin chi tiết',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 16,
-          runSpacing: 8,
-          children: [
-            if (player.height != null)
-              _buildInfoItem(Icons.height, 'Chiều cao: ${player.height} cm'),
-            if (player.weight != null)
-              _buildInfoItem(
-                Icons.monitor_weight,
-                'Cân nặng: ${player.weight} kg',
+        const SizedBox(height: 12),
+
+        // Thông tin cá nhân
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Thông tin cá nhân',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-            if (player.paddle != null)
-              _buildInfoItem(Icons.sports_tennis, 'Vợt: ${player.paddle}'),
-            if (player.plays != null)
-              _buildInfoItem(Icons.sports, 'Chơi: ${player.plays}'),
-            if (player.back_hand != null)
-              _buildInfoItem(Icons.back_hand, 'Thuận tay: ${player.back_hand}'),
-            if (player.birth_date != null)
-              _buildInfoItem(Icons.cake, 'Ngày sinh: ${player.birth_date}'),
-            if (player.age != null)
-              _buildInfoItem(Icons.person, 'Tuổi: ${player.age}'),
-            if (player.coach != null)
-              _buildInfoItem(Icons.sports, 'HLV: ${player.coach}'),
-          ],
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                children: [
+                  _buildInfoItem(
+                    Icons.height,
+                    'Chiều cao',
+                    player.height != null ? '${player.height} cm' : 'Không rõ',
+                  ),
+                  _buildInfoItem(
+                    Icons.monitor_weight,
+                    'Cân nặng',
+                    player.weight != null ? '${player.weight} kg' : 'Không rõ',
+                  ),
+                  _buildInfoItem(
+                    Icons.cake,
+                    'Ngày sinh',
+                    player.birth_date ?? 'Không rõ',
+                  ),
+                  _buildInfoItem(
+                    Icons.person,
+                    'Tuổi',
+                    player.age != null ? player.age.toString() : 'Không rõ',
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
 
         const SizedBox(height: 12),
 
+        // Thông tin thi đấu
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Thông tin thi đấu',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                children: [
+                  _buildInfoItem(
+                    Icons.sports_tennis,
+                    'Vợt',
+                    player.paddle ?? 'Không rõ',
+                  ),
+                  _buildInfoItem(
+                    Icons.sports,
+                    'Chơi',
+                    player.plays ?? 'Không rõ',
+                  ),
+                  _buildInfoItem(
+                    Icons.back_hand,
+                    'Thuận tay',
+                    player.back_hand ?? 'Không rõ',
+                  ),
+                  _buildInfoItem(
+                    Icons.sports,
+                    'HLV',
+                    player.coach ?? 'Không rõ',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
         // Thành tích
-        Row(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatBox(
-              'Thắng',
-              player.total_win.toString(),
-              Colors.green[100]!,
-              Colors.green[800]!,
+            const Text(
+              'Thành tích',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(width: 8),
-            _buildStatBox(
-              'Thua',
-              player.total_lose.toString(),
-              Colors.red[100]!,
-              Colors.red[800]!,
-            ),
-            const SizedBox(width: 8),
-            _buildStatBox(
-              'Thắng đôi',
-              player.total_win_doubles.toString(),
-              Colors.blue[100]!,
-              Colors.blue[800]!,
-            ),
-            const SizedBox(width: 8),
-            _buildStatBox(
-              'Thua đôi',
-              player.total_lose_doubles.toString(),
-              Colors.orange[100]!,
-              Colors.orange[800]!,
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _buildStatBox(
+                  'Thắng',
+                  player.total_win.toString(),
+                  Colors.green[100]!,
+                  Colors.green[800]!,
+                ),
+                const SizedBox(width: 8),
+                _buildStatBox(
+                  'Thua',
+                  player.total_lose.toString(),
+                  Colors.red[100]!,
+                  Colors.red[800]!,
+                ),
+                const SizedBox(width: 8),
+                _buildStatBox(
+                  'Thắng đôi',
+                  player.total_win_doubles.toString(),
+                  Colors.blue[100]!,
+                  Colors.blue[800]!,
+                ),
+                const SizedBox(width: 8),
+                _buildStatBox(
+                  'Thua đôi',
+                  player.total_lose_doubles.toString(),
+                  Colors.orange[100]!,
+                  Colors.orange[800]!,
+                ),
+              ],
             ),
           ],
         ),
@@ -222,7 +348,7 @@ class PlayerListItem extends StatelessWidget {
           const SizedBox(height: 16),
           const Text(
             'Mạng xã hội',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           _buildSocialLinks(),
@@ -231,14 +357,41 @@ class PlayerListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoItem(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
-        const SizedBox(width: 4),
-        Text(text, style: TextStyle(color: Colors.grey[800])),
-      ],
+  Widget _buildInfoItem(IconData icon, String label, String value) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 150),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.grey[800],
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color:
+                        value == 'Không rõ'
+                            ? Colors.grey[500]
+                            : Colors.grey[900],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -306,96 +459,42 @@ class PlayerListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBadge() {
-    Color backgroundColor;
-    String text;
-
-    switch (player.status) {
-      case RegistrationStatus.approved:
-        backgroundColor = Colors.green;
-        text = 'Đã duyệt';
-        break;
-      case RegistrationStatus.pending:
-        backgroundColor = Colors.orange;
-        text = 'Chờ duyệt';
-        break;
-      case RegistrationStatus.rejected:
-        backgroundColor = Colors.red;
-        text = 'Từ chối';
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
   Widget _buildActionButtons() {
-    // Hiển thị các nút hành động tùy theo trạng thái
-    if (player.status == RegistrationStatus.pending) {
-      // Nút duyệt/từ chối cho trạng thái chờ duyệt
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          OutlinedButton.icon(
-            onPressed: onReject,
-            icon: const Icon(Icons.close, color: Colors.red),
-            label: const Text('Từ chối'),
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton.icon(
-            onPressed: onApprove,
-            icon: const Icon(Icons.check),
-            label: const Text('Duyệt'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      );
-    } else if (player.status == RegistrationStatus.approved) {
-      // Nút cập nhật trạng thái thanh toán
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          OutlinedButton.icon(
-            onPressed: onTogglePaid,
-            icon: Icon(player.hasPaid ? Icons.money_off : Icons.attach_money),
-            label: Text(
-              player.hasPaid
-                  ? 'Đánh dấu chưa trả tiền'
-                  : 'Đánh dấu đã trả tiền',
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: player.hasPaid ? Colors.orange : Colors.green,
-            ),
-          ),
-        ],
-      );
-    }
-
-    // Trạng thái từ chối - chỉ hiện nút gọi lại
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        OutlinedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.call),
-          label: const Text('Gọi điện'),
+        // Thêm nút gọi điện nếu có số điện thoại
+        if (player.phone != null)
+          IconButton(
+            icon: const Icon(Icons.phone, color: Colors.green),
+            tooltip: 'Gọi điện',
+            onPressed: () {
+              // Xử lý sự kiện gọi điện
+            },
+          ),
+        // Thêm nút email nếu có email
+        if (player.email != null)
+          IconButton(
+            icon: const Icon(Icons.email, color: Colors.blue),
+            tooltip: 'Gửi email',
+            onPressed: () {
+              // Xử lý sự kiện gửi email
+            },
+          ),
+        const SizedBox(width: 8),
+        ElevatedButton.icon(
+          onPressed: () {
+            // Mở chi tiết người chơi
+          },
+          icon: const Icon(Icons.visibility),
+          label: const Text('Xem chi tiết'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
         ),
       ],
     );
