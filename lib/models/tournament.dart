@@ -6,7 +6,7 @@ class Tournament {
   final DateTime startDate;
   final DateTime endDate;
   final TournamentType type; // Singles hoặc doubles
-  final GenderRestriction genderRestriction;
+  final GenderRestriction genderRestriction; // Nam, nữ, hỗn hợp
   final int numberOfTeams;
   final List<Team> teams;
   final List<Match> matches;

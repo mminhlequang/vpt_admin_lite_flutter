@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
+import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../utils/constants.dart';
 import '../../models/player.dart';
 
@@ -28,6 +31,7 @@ class _EditPlayerScreenState extends State<EditPlayerScreen> {
   late String _backHand;
   late String _plays;
   File? _avatarFile;
+  XFile? _pickedImage;
   DateTime? _selectedDate;
   bool _isLoading = false;
   String? _avatarUrl;
@@ -97,7 +101,8 @@ class _EditPlayerScreenState extends State<EditPlayerScreen> {
 
     if (image != null) {
       setState(() {
-        _avatarFile = File(image.path);
+        _avatarFile = kIsWeb ? null : File(image.path);
+        _pickedImage = image;
       });
     }
   }
@@ -142,16 +147,30 @@ class _EditPlayerScreenState extends State<EditPlayerScreen> {
         FormData formData = FormData.fromMap(formFields);
 
         // Thêm ảnh mới nếu người dùng đã chọn
-        if (_avatarFile != null) {
-          formData.files.add(
-            MapEntry(
-              'avatar',
-              await MultipartFile.fromFile(
-                _avatarFile!.path,
-                filename: _avatarFile!.path.split('/').last,
+        if (_pickedImage != null) {
+          if (kIsWeb) {
+            // Xử lý cho web
+            List<int> imageBytes = await _pickedImage!.readAsBytes();
+            String fileName = _pickedImage!.name;
+
+            formData.files.add(
+              MapEntry(
+                'avatar',
+                MultipartFile.fromBytes(imageBytes, filename: fileName),
               ),
-            ),
-          );
+            );
+          } else {
+            // Xử lý cho mobile
+            formData.files.add(
+              MapEntry(
+                'avatar',
+                await MultipartFile.fromFile(
+                  _avatarFile!.path,
+                  filename: _avatarFile!.path.split('/').last,
+                ),
+              ),
+            );
+          }
         }
 
         // Gửi request cập nhật player
@@ -230,15 +249,40 @@ class _EditPlayerScreenState extends State<EditPlayerScreen> {
                                     ? FileImage(_avatarFile!)
                                     : (_avatarUrl != null &&
                                             _avatarUrl!.isNotEmpty
-                                        ? NetworkImage(_avatarUrl!)
+                                        ? NetworkImage(
+                                              correctUrlImage(_avatarUrl),
+                                            )
                                             as ImageProvider
                                         : null),
                             child:
                                 (_avatarFile == null &&
+                                        _pickedImage == null &&
                                         (_avatarUrl == null ||
                                             _avatarUrl!.isEmpty))
                                     ? const Icon(Icons.add_a_photo, size: 40)
-                                    : null,
+                                    : (kIsWeb && _pickedImage != null
+                                        ? FutureBuilder<Uint8List>(
+                                          future: _pickedImage!.readAsBytes(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                    ConnectionState.done &&
+                                                snapshot.hasData) {
+                                              return Container(
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  image: DecorationImage(
+                                                    image: MemoryImage(
+                                                      snapshot.data!,
+                                                    ),
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                            return const CircularProgressIndicator();
+                                          },
+                                        )
+                                        : null),
                           ),
                         ),
                       ),

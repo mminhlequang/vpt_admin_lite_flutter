@@ -1343,7 +1343,7 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
                               secondary: CircleAvatar(
                                 backgroundImage:
                                     player.avatar != null
-                                        ? NetworkImage(player.avatar!)
+                                        ? NetworkImage(correctUrlImage(player.avatar))
                                         : null,
                                 backgroundColor:
                                     player.sex == 1

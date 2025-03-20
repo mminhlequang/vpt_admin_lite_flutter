@@ -148,7 +148,12 @@ class _PlayersScreenState extends State<PlayersScreen> {
       MaterialPageRoute(
         builder: (context) => PlayerDetailScreen(player: player),
       ),
-    );
+    ).then((result) {
+      // Nếu quay về từ màn hình chi tiết và có thay đổi (true)
+      if (result == true) {
+        _loadPlayers();
+      }
+    });
   }
 
   void _updatePlayerStatus(Player player, RegistrationStatus status) {

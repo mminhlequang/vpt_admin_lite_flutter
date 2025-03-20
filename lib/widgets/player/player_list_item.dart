@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../models/player.dart';
 
+String correctUrlImage(String? url) {
+  return (url ?? "").startsWith("http") == true
+      ? url!
+      : "https://familyworld.xyz/$url";
+}
+
 class PlayerListItem extends StatelessWidget {
   final Player player;
   final bool showDetailedInfo;
@@ -133,11 +139,7 @@ class PlayerListItem extends StatelessWidget {
     if (player.avatar != null) {
       return CircleAvatar(
         radius: 28,
-        backgroundImage: NetworkImage(
-          player.avatar!.startsWith("http") == true
-              ? player.avatar!
-              : "https://familyworld.xyz/${player.avatar}",
-        ),
+        backgroundImage: NetworkImage(correctUrlImage(player.avatar)),
         backgroundColor: Colors.grey[200],
       );
     }

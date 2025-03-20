@@ -87,6 +87,7 @@ class _VideosScreenState extends State<VideosScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Quản lý video')),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.all(UIConstants.defaultPadding),

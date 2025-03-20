@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
 import '../../utils/constants.dart';
 import '../../models/player.dart';
@@ -26,6 +28,7 @@ class _CreatePlayerScreenState extends State<CreatePlayerScreen> {
   String _backHand = 'Left-Handed';
   String _plays = 'Left-Handed';
   File? _avatarFile;
+  XFile? _pickedImage;
   DateTime? _selectedDate;
   bool _isLoading = false;
 
@@ -53,7 +56,8 @@ class _CreatePlayerScreenState extends State<CreatePlayerScreen> {
 
     if (image != null) {
       setState(() {
-        _avatarFile = File(image.path);
+        _avatarFile = kIsWeb ? null : File(image.path);
+        _pickedImage = image;
       });
     }
   }
@@ -76,7 +80,7 @@ class _CreatePlayerScreenState extends State<CreatePlayerScreen> {
 
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      if (_avatarFile == null) {
+      if (_pickedImage == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Vui lòng chọn ảnh đại diện')),
         );
@@ -89,21 +93,43 @@ class _CreatePlayerScreenState extends State<CreatePlayerScreen> {
 
       try {
         // Chuẩn bị FormData để gửi
-        FormData formData = FormData.fromMap({
-          'name': _nameController.text,
-          'email': _emailController.text,
-          'phone': _phoneController.text,
-          'height': _heightController.text,
-          'weight': _weightController.text,
-          'birth_date': _birthDateController.text,
-          'birth_place': _birthPlaceController.text,
-          'back_hand': _backHand,
-          'plays': _plays,
-          'avatar': await MultipartFile.fromFile(
-            _avatarFile!.path,
-            filename: _avatarFile!.path.split('/').last,
-          ),
-        });
+        FormData formData;
+
+        if (kIsWeb) {
+          // Trường hợp web
+          List<int> imageBytes = await _pickedImage!.readAsBytes();
+          String fileName = _pickedImage!.name;
+
+          formData = FormData.fromMap({
+            'name': _nameController.text,
+            'email': _emailController.text,
+            'phone': _phoneController.text,
+            'height': _heightController.text,
+            'weight': _weightController.text,
+            'birth_date': _birthDateController.text,
+            'birth_place': _birthPlaceController.text,
+            'back_hand': _backHand,
+            'plays': _plays,
+            'avatar': MultipartFile.fromBytes(imageBytes, filename: fileName),
+          });
+        } else {
+          // Trường hợp mobile
+          formData = FormData.fromMap({
+            'name': _nameController.text,
+            'email': _emailController.text,
+            'phone': _phoneController.text,
+            'height': _heightController.text,
+            'weight': _weightController.text,
+            'birth_date': _birthDateController.text,
+            'birth_place': _birthPlaceController.text,
+            'back_hand': _backHand,
+            'plays': _plays,
+            'avatar': await MultipartFile.fromFile(
+              _avatarFile!.path,
+              filename: _avatarFile!.path.split('/').last,
+            ),
+          });
+        }
 
         // Gửi request tạo player mới
         final response = await Dio().post(
@@ -176,9 +202,31 @@ class _CreatePlayerScreenState extends State<CreatePlayerScreen> {
                                     ? FileImage(_avatarFile!)
                                     : null,
                             child:
-                                _avatarFile == null
+                                _avatarFile == null && _pickedImage == null
                                     ? const Icon(Icons.add_a_photo, size: 40)
-                                    : null,
+                                    : (kIsWeb && _pickedImage != null
+                                        ? FutureBuilder<Uint8List>(
+                                          future: _pickedImage!.readAsBytes(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                    ConnectionState.done &&
+                                                snapshot.hasData) {
+                                              return Container(
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  image: DecorationImage(
+                                                    image: MemoryImage(
+                                                      snapshot.data!,
+                                                    ),
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                            return const CircularProgressIndicator();
+                                          },
+                                        )
+                                        : null),
                           ),
                         ),
                       ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../models/player.dart';
 import '../../utils/constants.dart';
 import 'edit_player_screen.dart';
+import 'package:dio/dio.dart';
 
 class PlayerDetailScreen extends StatefulWidget {
   final Player player;
@@ -24,7 +26,19 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết người chơi')),
+      appBar: AppBar(
+        title: const Text('Chi tiết người chơi'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => _navigateToEditScreen(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: _confirmDeletePlayer,
+          ),
+        ],
+      ),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -56,41 +70,84 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
     return Center(
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor:
-                _player.gender == 'male' ? Colors.blue[100] : Colors.pink[100],
-            child: Text(
-              _player.name.substring(0, 1).toUpperCase(),
-              style: TextStyle(
-                fontSize: 40,
-                fontWeight: FontWeight.bold,
-                color:
-                    _player.gender == 'male'
-                        ? Colors.blue[800]
-                        : Colors.pink[800],
+          if (_player.avatar != null && _player.avatar!.isNotEmpty)
+            CircleAvatar(
+              radius: 50,
+              backgroundImage: NetworkImage(correctUrlImage(_player.avatar)),
+            )
+          else
+            CircleAvatar(
+              radius: 50,
+              backgroundColor:
+                  _player.gender == 'male'
+                      ? Colors.blue[100]
+                      : Colors.pink[100],
+              child: Text(
+                _player.name.substring(0, 1).toUpperCase(),
+                style: TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      _player.gender == 'male'
+                          ? Colors.blue[800]
+                          : Colors.pink[800],
+                ),
               ),
             ),
-          ),
           const SizedBox(height: 16),
-          Text(
-            _player.name,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                _player.gender == 'male' ? Icons.male : Icons.female,
-                color: _player.gender == 'male' ? Colors.blue : Colors.pink,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _player.gender == 'male' ? 'Nam' : 'Nữ',
-                style: TextStyle(
-                  color: _player.gender == 'male' ? Colors.blue : Colors.pink,
+              Opacity(
+                opacity: 0,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _player.gender == 'male' ? Icons.male : Icons.female,
+                      color:
+                          _player.gender == 'male' ? Colors.blue : Colors.pink,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _player.gender == 'male' ? 'Nam' : 'Nữ',
+                      style: TextStyle(
+                        color:
+                            _player.gender == 'male'
+                                ? Colors.blue
+                                : Colors.pink,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                _player.name,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _player.gender == 'male' ? Icons.male : Icons.female,
+                    color: _player.gender == 'male' ? Colors.blue : Colors.pink,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _player.gender == 'male' ? 'Nam' : 'Nữ',
+                    style: TextStyle(
+                      color:
+                          _player.gender == 'male' ? Colors.blue : Colors.pink,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -333,5 +390,89 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
         ),
       ),
     );
+  }
+
+  void _navigateToEditScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditPlayerScreen(player: _player),
+      ),
+    ).then((result) {
+      if (result == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã cập nhật thông tin người chơi')),
+        );
+        // Reload player data
+      }
+    });
+  }
+
+  void _confirmDeletePlayer() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Xóa người chơi'),
+            content: const Text(
+              'Bạn có chắc chắn muốn xóa người chơi này không?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Hủy'),
+              ),
+              TextButton(
+                onPressed: _deletePlayer,
+                child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _deletePlayer() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      Navigator.pop(context); // Đóng dialog xác nhận
+
+      final dio = Dio();
+      dio.options.headers['X-Api-Key'] = 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ';
+      dio.options.headers['Content-Type'] = 'application/json';
+      dio.options.headers['X-CSRF-TOKEN'] =
+          'ZOIziJYP495Zp1o4JPDuhNQPz2mc1ksWTh1kvlYq';
+
+      final response = await dio.post(
+        'https://familyworld.xyz/api/player/delete',
+        data: {'id': _player.id},
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã xóa người chơi thành công')),
+        );
+
+        // Quay lại màn hình danh sách
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể xóa người chơi')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Lỗi khi xóa người chơi: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 }

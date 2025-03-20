@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../config/routes.dart';
 import '../players/players_screen.dart';
 import '../tournaments/tournaments_screen.dart';
 import '../videos/videos_screen.dart';
@@ -23,7 +22,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: _screens[_selectedIndex],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
@@ -48,4 +50,3 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 }
- 

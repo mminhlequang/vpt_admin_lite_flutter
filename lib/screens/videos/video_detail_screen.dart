@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../utils/constants.dart';
 import '../../models/video.dart';
 import 'edit_video_screen.dart';
+import 'package:dio/dio.dart';
 
 class VideoDetailScreen extends StatefulWidget {
   final Video video;
@@ -26,6 +28,10 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _navigateToEditScreen,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: _confirmDeleteVideo,
           ),
         ],
       ),
@@ -82,7 +88,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
             image:
                 _video.avatar != null && _video.avatar!.isNotEmpty
                     ? DecorationImage(
-                      image: NetworkImage(_video.avatar!),
+                      image: NetworkImage(correctUrlImage(_video.avatar)),
                       fit: BoxFit.cover,
                     )
                     : null,
@@ -188,5 +194,71 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
         ],
       ),
     );
+  }
+
+  void _confirmDeleteVideo() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Xóa video'),
+            content: const Text('Bạn có chắc chắn muốn xóa video này không?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Hủy'),
+              ),
+              TextButton(
+                onPressed: _deleteVideo,
+                child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _deleteVideo() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      Navigator.pop(context); // Đóng dialog xác nhận
+
+      final dio = Dio();
+      dio.options.headers['X-Api-Key'] = 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ';
+      dio.options.headers['Content-Type'] = 'application/json';
+      dio.options.headers['X-CSRF-TOKEN'] =
+          'ZOIziJYP495Zp1o4JPDuhNQPz2mc1ksWTh1kvlYq';
+
+      final response = await dio.post(
+        'https://familyworld.xyz/api/video/delete',
+        data: {'id': _video.id},
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã xóa video thành công')),
+        );
+
+        // Quay lại màn hình danh sách
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Không thể xóa video')));
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Lỗi khi xóa video: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 }
