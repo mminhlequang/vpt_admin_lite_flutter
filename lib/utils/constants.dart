@@ -1,27 +1,23 @@
 class ApiConstants {
   // Base URL cho API
-  static const String baseUrl = 'https://api.pickleball-tournament.com/api/v1';
+  static const String baseUrl = 'https://familyworld.xyz/api';
 
-  // Các endpoint
+  // API key
+  static const String apiKey = 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ';
+ 
+
+  // Main endpoints
   static const String players = '/players';
-  static const String tournaments = '/tournaments';
+  static const String tournaments = '/tournament';
   static const String videos = '/videos';
-  static const String teams = '/teams';
-  static const String matches = '/matches';
-
-  // Các thông số phân trang
-  static const int defaultPageSize = 20;
+ 
+  // Pagination
+  static const int defaultPageSize = 10;
+  static const int defaultPage = 1;
   static const int maxPageSize = 100;
 }
 
-class AppConstants {
-  // Các đường dẫn hình ảnh
-  static const String logoPath = 'assets/images/logo.png';
-  static const String placeholderImagePath = 'assets/images/placeholder.png';
-
-  // Các khóa lưu trữ localStorage
-  static const String tokenKey = 'auth_token';
-  static const String userKey = 'user_data';
+class AppConstants { 
 
   // Các thông số khác
   static const int minPasswordLength = 8;

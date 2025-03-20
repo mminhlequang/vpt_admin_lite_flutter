@@ -5,14 +5,19 @@ class Tournament {
   final String name;
   final DateTime startDate;
   final DateTime endDate;
-  final TournamentType type; // Singles hoặc doubles
-  final GenderRestriction genderRestriction; // Nam, nữ, hỗn hợp
+  final int type; // 1: singles, 2: doubles
+  final List<String>? genderRestriction; // ['male', 'female', 'mixed']
   final int numberOfTeams;
   final List<Team> teams;
   final List<Match> matches;
   final TournamentStatus status;
   final String? imageUrl;
   final String? description;
+  final int? categoryId;
+  final String? city;
+  final String? surface;
+  final double? prize;
+  final int? packageId;
 
   Tournament({
     required this.id,
@@ -20,47 +25,82 @@ class Tournament {
     required this.startDate,
     required this.endDate,
     required this.type,
-    required this.genderRestriction,
+    this.genderRestriction,
     required this.numberOfTeams,
     this.teams = const [],
     this.matches = const [],
     this.status = TournamentStatus.preparing,
     this.imageUrl,
     this.description,
+    this.categoryId,
+    this.city,
+    this.surface,
+    this.prize,
+    this.packageId,
   });
 
   // Tạo từ JSON
   factory Tournament.fromJson(Map<String, dynamic> json) {
     return Tournament(
       id: json['id'] is String ? int.parse(json['id']) : json['id'],
-      name: json['name'],
-      startDate: DateTime.parse(json['startDate']),
-      endDate: DateTime.parse(json['endDate']),
-      type: TournamentType.values.firstWhere(
-        (e) => e.toString().split('.').last == json['type'],
-        orElse: () => TournamentType.singles,
-      ),
-      genderRestriction: GenderRestriction.values.firstWhere(
-        (e) => e.toString().split('.').last == json['genderRestriction'],
-        orElse: () => GenderRestriction.mixed,
-      ),
-      numberOfTeams: json['numberOfTeams'],
+      name: json['name'] ?? '',
+      startDate:
+          json['startDate'] != null
+              ? DateTime.parse(json['startDate'])
+              : DateTime.now(),
+      endDate:
+          json['endDate'] != null
+              ? DateTime.parse(json['endDate'])
+              : DateTime.now().add(Duration(days: 1)),
+      type:
+          json['type'] is String
+              ? int.parse(json['type'])
+              : (json['type'] ?? 1),
+      genderRestriction:
+          json['genderRestriction'] is List
+              ? (json['genderRestriction'] as List).cast<String>()
+              : json['genderRestriction'] is String
+              ? [json['genderRestriction']]
+              : ['mixed'],
+      numberOfTeams:
+          json['numberOfTeams'] is String
+              ? int.parse(json['numberOfTeams'])
+              : (json['numberOfTeams'] ?? 2),
       teams:
-          (json['teams'] as List?)
-              ?.map((team) => Team.fromJson(team))
-              .toList() ??
-          [],
+          json['teams'] is List
+              ? (json['teams'] as List)
+                  .map((team) => Team.fromJson(team))
+                  .toList()
+              : [],
       matches:
-          (json['matches'] as List?)
-              ?.map((match) => Match.fromJson(match))
-              .toList() ??
-          [],
-      status: TournamentStatus.values.firstWhere(
-        (e) => e.toString().split('.').last == json['status'],
-        orElse: () => TournamentStatus.preparing,
-      ),
-      imageUrl: json['imageUrl'],
+          json['matches'] is List
+              ? (json['matches'] as List)
+                  .map((match) => Match.fromJson(match))
+                  .toList()
+              : [],
+      status:
+          json['status'] != null
+              ? TournamentStatus.values.firstWhere(
+                (e) => e.toString().split('.').last == json['status'],
+                orElse: () => TournamentStatus.preparing,
+              )
+              : TournamentStatus.preparing,
+      imageUrl: json['imageUrl'] ?? json['image_url'],
       description: json['description'],
+      categoryId:
+          json['categoryId'] is String
+              ? int.parse(json['categoryId'])
+              : json['categoryId'],
+      city: json['city'],
+      surface: json['surface'],
+      prize:
+          json['prize'] != null
+              ? double.tryParse(json['prize'].toString())
+              : null,
+      packageId:
+          json['packageId'] is String
+              ? int.parse(json['packageId'])
+              : json['packageId'],
     );
   }
 
@@ -71,14 +111,19 @@ class Tournament {
       'name': name,
       'startDate': startDate.toIso8601String(),
       'endDate': endDate.toIso8601String(),
-      'type': type.toString().split('.').last,
-      'genderRestriction': genderRestriction.toString().split('.').last,
+      'type': type,
+      'genderRestriction': genderRestriction,
       'numberOfTeams': numberOfTeams,
       'teams': teams.map((team) => team.toJson()).toList(),
       'matches': matches.map((match) => match.toJson()).toList(),
       'status': status.toString().split('.').last,
       'imageUrl': imageUrl,
       'description': description,
+      'categoryId': categoryId,
+      'city': city,
+      'surface': surface,
+      'prize': prize,
+      'packageId': packageId,
     };
   }
 
@@ -88,14 +133,19 @@ class Tournament {
     String? name,
     DateTime? startDate,
     DateTime? endDate,
-    TournamentType? type,
-    GenderRestriction? genderRestriction,
+    int? type,
+    List<String>? genderRestriction,
     int? numberOfTeams,
     List<Team>? teams,
     List<Match>? matches,
     TournamentStatus? status,
     String? imageUrl,
     String? description,
+    int? categoryId,
+    String? city,
+    String? surface,
+    double? prize,
+    int? packageId,
   }) {
     return Tournament(
       id: id ?? this.id,
@@ -110,6 +160,11 @@ class Tournament {
       status: status ?? this.status,
       imageUrl: imageUrl ?? this.imageUrl,
       description: description ?? this.description,
+      categoryId: categoryId ?? this.categoryId,
+      city: city ?? this.city,
+      surface: surface ?? this.surface,
+      prize: prize ?? this.prize,
+      packageId: packageId ?? this.packageId,
     );
   }
 }
@@ -124,13 +179,14 @@ class Team {
   // Tạo từ JSON
   factory Team.fromJson(Map<String, dynamic> json) {
     return Team(
-      id: json['id'].toString(),
-      name: json['name'],
+      id: json['id']?.toString() ?? '0',
+      name: json['name'] ?? 'Đội không tên',
       players:
-          (json['players'] as List?)
-              ?.map((player) => Player.fromJson(player))
-              .toList() ??
-          [],
+          json['players'] is List
+              ? (json['players'] as List)
+                  .map((player) => Player.fromJson(player))
+                  .toList()
+              : [],
     );
   }
 
@@ -170,21 +226,36 @@ class Match {
   // Tạo từ JSON
   factory Match.fromJson(Map<String, dynamic> json) {
     return Match(
-      id: json['id'],
-      team1: Team.fromJson(json['team1']),
-      team2: Team.fromJson(json['team2']),
-      score1: json['score1'],
-      score2: json['score2'],
-      status: MatchStatus.values.firstWhere(
-        (e) => e.toString().split('.').last == json['status'],
-        orElse: () => MatchStatus.scheduled,
-      ),
+      id: json['id']?.toString() ?? '0',
+      team1:
+          json['team1'] is Map
+              ? Team.fromJson(json['team1'])
+              : Team(id: '0', name: 'Đội 1', players: []),
+      team2:
+          json['team2'] is Map
+              ? Team.fromJson(json['team2'])
+              : Team(id: '0', name: 'Đội 2', players: []),
+      score1:
+          json['score1'] is String
+              ? int.tryParse(json['score1'])
+              : json['score1'],
+      score2:
+          json['score2'] is String
+              ? int.tryParse(json['score2'])
+              : json['score2'],
+      status:
+          json['status'] != null
+              ? MatchStatus.values.firstWhere(
+                (e) => e.toString().split('.').last == json['status'],
+                orElse: () => MatchStatus.scheduled,
+              )
+              : MatchStatus.scheduled,
       scheduledTime:
           json['scheduledTime'] != null
-              ? DateTime.parse(json['scheduledTime'])
+              ? DateTime.tryParse(json['scheduledTime'])
               : null,
-      courtNumber: json['courtNumber'],
-      winner: json['winner'] != null ? Team.fromJson(json['winner']) : null,
+      courtNumber: json['courtNumber']?.toString(),
+      winner: json['winner'] is Map ? Team.fromJson(json['winner']) : null,
     );
   }
 
@@ -203,10 +274,6 @@ class Match {
     };
   }
 }
-
-enum TournamentType { singles, doubles }
-
-enum GenderRestriction { male, female, mixed }
 
 enum TournamentStatus { preparing, ongoing, completed, cancelled }
 

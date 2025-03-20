@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import '../../../models/tournament.dart';
 import '../../../utils/constants.dart';
+import 'package:intl/intl.dart';
 
 class TournamentInfoTab extends StatelessWidget {
   final Tournament tournament;
@@ -151,14 +152,18 @@ class TournamentInfoTab extends StatelessWidget {
             const Divider(),
             _buildInfoRow(
               'Loại giải đấu:',
-              tournament.type == TournamentType.singles ? 'Đấu đơn' : 'Đấu đôi',
+              tournament.type == 1 ? 'Đấu đơn' : 'Đấu đôi',
             ),
             _buildInfoRow(
               'Giới hạn:',
-              tournament.genderRestriction == GenderRestriction.male
-                  ? 'Nam'
-                  : tournament.genderRestriction == GenderRestriction.female
-                  ? 'Nữ'
+              tournament.genderRestriction != null
+                  ? (tournament.genderRestriction!.contains('male') &&
+                          !tournament.genderRestriction!.contains('female')
+                      ? 'Nam'
+                      : !tournament.genderRestriction!.contains('male') &&
+                          tournament.genderRestriction!.contains('female')
+                      ? 'Nữ'
+                      : 'Nam & Nữ')
                   : 'Nam & Nữ',
             ),
             _buildInfoRow('Số đội:', '${tournament.numberOfTeams}'),
@@ -166,6 +171,20 @@ class TournamentInfoTab extends StatelessWidget {
               'Trận đấu đã hoàn thành:',
               '${tournament.matches.where((m) => m.status == MatchStatus.completed).length}/${tournament.matches.length}',
             ),
+            if (tournament.categoryId != null)
+              _buildInfoRow(
+                'Danh mục:',
+                _getCategoryName(tournament.categoryId!),
+              ),
+            if (tournament.city != null)
+              _buildInfoRow('Thành phố:', tournament.city!),
+            if (tournament.surface != null)
+              _buildInfoRow('Bề mặt sân:', tournament.surface!),
+            if (tournament.prize != null)
+              _buildInfoRow(
+                'Giải thưởng:',
+                '${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(tournament.prize)}',
+              ),
           ],
         ),
       ),
@@ -344,5 +363,10 @@ class TournamentInfoTab extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _getCategoryName(int categoryId) {
+    // TODO: Lấy tên danh mục từ API hoặc cache
+    return 'Danh mục #$categoryId';
   }
 }

@@ -1,0 +1,564 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import '../../models/tour_package.dart';
+import '../../models/tournament.dart' as tournament_model;
+import '../../models/category.dart';
+import '../../utils/constants.dart';
+import '../../widgets/loading_indicator.dart';
+
+class PackagesScreen extends StatefulWidget {
+  final int tournamentId;
+  final String? tournamentName;
+
+  const PackagesScreen({
+    Key? key,
+    required this.tournamentId,
+    this.tournamentName,
+  }) : super(key: key);
+
+  @override
+  State<PackagesScreen> createState() => _PackagesScreenState();
+}
+
+class _PackagesScreenState extends State<PackagesScreen> {
+  bool _isLoading = true;
+  bool _isLoadingCategories = true;
+  List<TourPackage> _packages = [];
+  List<Category> _categories = [];
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([_loadPackages(), _loadCategories()]);
+  }
+
+  Future<void> _loadPackages() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final dio = Dio();
+      final response = await dio.get(
+        '${ApiConstants.baseUrl}/tournament/get_packages',
+        queryParameters: {'tournament_id': widget.tournamentId},
+        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['status']) {
+          final packagesData = data['data'] as List;
+          setState(() {
+            _packages =
+                packagesData.map((item) => TourPackage.fromJson(item)).toList();
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = data['message'] ?? 'Không thể tải gói đăng ký';
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Lỗi kết nối: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Không thể tải gói đăng ký: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() {
+      _isLoadingCategories = true;
+    });
+
+    try {
+      final dio = Dio();
+      final response = await dio.get(
+        '${ApiConstants.baseUrl}/tournament/get_categories',
+        options: Options(
+          headers: {
+            'X-Api-Key': ApiConstants.apiKey,
+            'X-CSRF-TOKEN': 'xUDZSvhETbuxr2owmJx5WVT6kORmY8Gb0n6NQhC3',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['status']) {
+          final categoriesData = data['data'] as List;
+          setState(() {
+            _categories =
+                categoriesData.map((item) => Category.fromJson(item)).toList();
+            _isLoadingCategories = false;
+          });
+        } else {
+          setState(() {
+            _isLoadingCategories = false;
+          });
+        }
+      } else {
+        setState(() {
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+    }
+  }
+
+  String _getCategoryName(int categoryId) {
+    final category = _categories.firstWhere(
+      (c) => c.id == categoryId,
+      orElse:
+          () => Category(
+            id: -1,
+            name: 'Không tìm thấy',
+            numberOfPlayer: 1,
+            sex: 0,
+          ),
+    );
+    return category.name;
+  }
+
+  String _getStatusText(int enable) {
+    return enable == 1 ? 'Đang kích hoạt' : 'Đã tắt';
+  }
+
+  Color _getStatusColor(int enable) {
+    return enable == 1 ? Colors.green : Colors.red;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Gói đăng ký - ${widget.tournamentName ?? ''}'),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+        ],
+      ),
+      body: _buildBody(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          if (_categories.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Vui lòng thêm danh mục trước')),
+            );
+            return;
+          }
+          _showAddPackageDialog(context);
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading || _isLoadingCategories) {
+      return const Center(child: LoadingIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _errorMessage!,
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadPackages,
+              child: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_packages.isEmpty) {
+      return const Center(child: Text('Chưa có gói đăng ký nào'));
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(UIConstants.defaultPadding),
+      itemCount: _packages.length,
+      separatorBuilder: (context, index) => const Divider(),
+      itemBuilder: (context, index) {
+        final package = _packages[index];
+        return Card(
+          elevation: 2,
+          child: ListTile(
+            title: Text(
+              package.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Giá: ${package.price?.toStringAsFixed(0) ?? '0'} VNĐ'),
+                Text('Danh mục: ${_getCategoryName(package.categoryId ?? 0)}'),
+                Text(
+                  'Trạng thái: ${_getStatusText(package.enable)}',
+                  style: TextStyle(
+                    color: _getStatusColor(package.enable),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blue),
+                  onPressed: () {
+                    _showEditPackageDialog(context, package);
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () {
+                    _showDeletePackageDialog(context, package);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAddPackageDialog(BuildContext context) {
+    final formKey = GlobalKey<FormState>();
+    String name = '';
+    int categoryId = _categories.first.id;
+    double price = 0;
+    int enable = 1;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Thêm gói đăng ký mới'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'Tên gói',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Vui lòng nhập tên gói';
+                      }
+                      return null;
+                    },
+                    onSaved: (value) {
+                      name = value!;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Danh mục',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: categoryId,
+                    items:
+                        _categories.map((category) {
+                          return DropdownMenuItem<int>(
+                            value: category.id,
+                            child: Text(category.name),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      categoryId = value!;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'Giá (VNĐ)',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Vui lòng nhập giá';
+                      }
+                      try {
+                        final num = double.parse(value);
+                        if (num <= 0) {
+                          return 'Giá phải lớn hơn 0';
+                        }
+                      } catch (e) {
+                        return 'Vui lòng nhập giá hợp lệ';
+                      }
+                      return null;
+                    },
+                    onSaved: (value) {
+                      price = double.parse(value!);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Trạng thái',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: enable,
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('Kích hoạt')),
+                      DropdownMenuItem(value: 0, child: Text('Tắt')),
+                    ],
+                    onChanged: (value) {
+                      enable = value!;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  formKey.currentState!.save();
+                  try {
+                    final dio = Dio();
+                    final response = await dio.post(
+                      '${ApiConstants.baseUrl}/tournament/create_packages',
+                      data: {
+                        'name': name,
+                        'enable': enable,
+                        'tour_id': widget.tournamentId,
+                        'category_id': categoryId,
+                        'price': price,
+                      },
+                      options: Options(
+                        headers: {
+                          'X-Api-Key': ApiConstants.apiKey,
+                          'X-CSRF-TOKEN':
+                              'xUDZSvhETbuxr2owmJx5WVT6kORmY8Gb0n6NQhC3',
+                        },
+                      ),
+                    );
+
+                    if (response.statusCode != 200 ||
+                        response.data['status'] != true) {
+                      throw Exception(
+                        response.data['message'] ?? 'Không thể tạo gói đăng ký',
+                      );
+                    }
+
+                    if (!mounted) return;
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Đã thêm gói đăng ký mới')),
+                    );
+                    _loadPackages();
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Lỗi: ${e.toString()}')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Lưu'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditPackageDialog(BuildContext context, TourPackage package) {
+    final formKey = GlobalKey<FormState>();
+    String name = package.name;
+    int categoryId = package.categoryId ?? 0;
+    double price = package.price?.toDouble() ?? 0;
+    int enable = package.enable;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Chỉnh sửa gói đăng ký'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    initialValue: name,
+                    decoration: const InputDecoration(
+                      labelText: 'Tên gói',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Vui lòng nhập tên gói';
+                      }
+                      return null;
+                    },
+                    onSaved: (value) {
+                      name = value!;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Danh mục',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: categoryId,
+                    items:
+                        _categories.map((category) {
+                          return DropdownMenuItem<int>(
+                            value: category.id,
+                            child: Text(category.name),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      categoryId = value!;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    initialValue: price.toStringAsFixed(0),
+                    decoration: const InputDecoration(
+                      labelText: 'Giá (VNĐ)',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Vui lòng nhập giá';
+                      }
+                      try {
+                        final num = double.parse(value);
+                        if (num <= 0) {
+                          return 'Giá phải lớn hơn 0';
+                        }
+                      } catch (e) {
+                        return 'Vui lòng nhập giá hợp lệ';
+                      }
+                      return null;
+                    },
+                    onSaved: (value) {
+                      price = double.parse(value!);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(
+                      labelText: 'Trạng thái',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: enable,
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('Kích hoạt')),
+                      DropdownMenuItem(value: 0, child: Text('Tắt')),
+                    ],
+                    onChanged: (value) {
+                      enable = value!;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  formKey.currentState!.save();
+                  // TODO: Implement API call to update package
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã cập nhật gói đăng ký')),
+                  );
+                  _loadPackages();
+                }
+              },
+              child: const Text('Lưu'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeletePackageDialog(BuildContext context, TourPackage package) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Xác nhận xóa'),
+          content: Text('Bạn có chắc chắn muốn xóa gói "${package.name}"?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                // TODO: Implement API call to delete package
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Đã xóa gói đăng ký')),
+                );
+                _loadPackages();
+              },
+              child: const Text('Xóa'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}

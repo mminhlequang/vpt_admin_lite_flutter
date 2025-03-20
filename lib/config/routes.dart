@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/tournament.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/players/player_detail_screen.dart';
 import '../screens/videos/video_detail_screen.dart';
@@ -33,12 +34,9 @@ class AppRoutes {
                   VideoDetailScreen(video: args != null ? args['video'] : null),
         );
       case tournamentDetail:
-        final args = settings.arguments as Map<String, dynamic>?;
+        final args = settings.arguments as Tournament;
         return MaterialPageRoute(
-          builder:
-              (context) => TournamentDetailScreen(
-                tournament: args != null ? args['tournament'] : null,
-              ),
+          builder: (context) => TournamentDetailScreen(tournament: args),
         );
       default:
         return MaterialPageRoute(
