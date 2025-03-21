@@ -53,8 +53,8 @@ class TournamentBracketView extends StatelessWidget {
   double _calculateBracketHeight() {
     // Tính toán số trận đấu ở vòng đầu tiên
     final firstRoundMatchCount = _calculateFirstRoundMatchCount();
-    // Mỗi trận đấu chiếm 80px chiều cao + khoảng cách 40px
-    return math.max(firstRoundMatchCount * 120.0, 400.0) + 100;
+    // Mỗi trận đấu chiếm 120px chiều cao và thêm khoảng trống giữa các trận đấu
+    return math.max(firstRoundMatchCount * 180.0, 400.0);
   }
 
   int _calculateRoundCount() {
@@ -445,17 +445,28 @@ class TournamentBracketView extends StatelessWidget {
   }
 
   Widget _buildRoundMatches(List<Match> matches, int roundIndex) {
+    // Tính toán chiều cao có sẵn cho các trận đấu
+    final availableHeight =
+        _calculateBracketHeight() - 40; // Trừ đi chiều cao của header
+
     return Positioned(
       left: roundIndex * 220.0, // Mỗi vòng cách nhau 220px
       top: 40, // Để chỗ cho tiêu đề vòng đấu
       bottom: 0,
       width: 180.0, // Chiều rộng của mỗi khối trận đấu
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          for (int i = 0; i < matches.length; i++)
-            _buildMatchTile(matches[i], roundIndex, i),
-        ],
+      child: SizedBox(
+        height: availableHeight,
+        child: Stack(
+          children: [
+            for (int i = 0; i < matches.length; i++)
+              Positioned(
+                top: i * (availableHeight / matches.length),
+                left: 0,
+                right: 0,
+                child: _buildMatchTile(matches[i], roundIndex, i),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -629,71 +640,73 @@ class BracketPainter extends CustomPainter {
       final currentRound = rounds[r];
       final previousRound = rounds[r - 1];
 
+      // Chiều cao khả dụng cho mỗi vòng (trừ đi phần header)
+      final availableHeight = size.height - 40;
+
+      // Chiều cao thực tế của một trận đấu (khoảng 80px)
+      final matchHeight = 80.0;
+
+      // Khoảng cách giữa các trận trong mỗi vòng
+      final prevRoundSpacing = availableHeight / previousRound.length;
+      final currentRoundSpacing = availableHeight / currentRound.length;
+
       for (int i = 0; i < currentRound.length; i++) {
-        final match = currentRound[i];
-        final int prevIndex1 = i * 2;
-        final int prevIndex2 = i * 2 + 1;
+        // Vị trí X của các cột
+        final prevRoundX =
+            (r - 1) * 220.0 +
+            180.0; // X-coordinate của phần cuối trận đấu ở vòng trước
+        final currentRoundX =
+            r * 220.0; // X-coordinate của phần đầu trận đấu ở vòng hiện tại
+
+        // Vị trí Y của trận đấu hiện tại (giữa trận đấu)
+        final currentY = 40 + i * currentRoundSpacing + matchHeight / 2;
+
+        // Tính toán các trận ở vòng trước kết nối đến trận hiện tại
+        final prevIndex1 = i * 2;
+        final prevIndex2 = i * 2 + 1;
 
         if (prevIndex1 < previousRound.length) {
-          final prevMatch1 = previousRound[prevIndex1];
+          // Vị trí Y của trận đấu thứ nhất ở vòng trước
+          final prevY1 = 40 + prevIndex1 * prevRoundSpacing + matchHeight / 2;
 
-          // Tính toán vị trí
-          final double startX =
-              (r - 1) * 220.0 + 180.0; // Điểm kết thúc trận trước
-          final double startY =
-              40 +
-              8 +
-              prevIndex1 * (size.height - 40) / previousRound.length +
-              30; // Giữa trận đấu
-
-          final double endX = r * 220.0; // Điểm bắt đầu trận hiện tại
-          final double endY =
-              40 +
-              8 +
-              i * (size.height - 40) / currentRound.length +
-              30; // Giữa trận đấu
-
-          // Vẽ đường kết nối
+          // Vẽ đường kết nối từ trận trước đến trận hiện tại
           final path = Path();
-          path.moveTo(startX, startY);
-          path.lineTo(startX + 20, startY); // Di chuyển ngang 20px
+          path.moveTo(
+            prevRoundX,
+            prevY1,
+          ); // Bắt đầu từ điểm cuối của trận trước
+          path.lineTo(prevRoundX + 20, prevY1); // Di chuyển ngang một đoạn
           path.lineTo(
-            startX + 20,
-            endY,
+            prevRoundX + 20,
+            currentY,
           ); // Di chuyển dọc đến vị trí trận hiện tại
-          path.lineTo(endX, endY); // Di chuyển ngang đến trận hiện tại
+          path.lineTo(
+            currentRoundX,
+            currentY,
+          ); // Di chuyển ngang đến trận hiện tại
 
           canvas.drawPath(path, paint);
         }
 
         if (prevIndex2 < previousRound.length) {
-          final prevMatch2 = previousRound[prevIndex2];
+          // Vị trí Y của trận đấu thứ hai ở vòng trước
+          final prevY2 = 40 + prevIndex2 * prevRoundSpacing + matchHeight / 2;
 
-          // Tính toán vị trí
-          final double startX =
-              (r - 1) * 220.0 + 180.0; // Điểm kết thúc trận trước
-          final double startY =
-              40 +
-              8 +
-              prevIndex2 * (size.height - 40) / previousRound.length +
-              30; // Giữa trận đấu
-
-          final double endX = r * 220.0; // Điểm bắt đầu trận hiện tại
-          final double endY =
-              40 +
-              8 +
-              i * (size.height - 40) / currentRound.length +
-              30; // Giữa trận đấu
-
-          // Vẽ đường kết nối
+          // Vẽ đường kết nối từ trận trước đến trận hiện tại
           final path = Path();
-          path.moveTo(startX, startY);
-          path.lineTo(startX + 20, startY); // Di chuyển ngang 20px
+          path.moveTo(
+            prevRoundX,
+            prevY2,
+          ); // Bắt đầu từ điểm cuối của trận trước
+          path.lineTo(prevRoundX + 20, prevY2); // Di chuyển ngang một đoạn
           path.lineTo(
-            startX + 20,
-            endY,
+            prevRoundX + 20,
+            currentY,
           ); // Di chuyển dọc đến vị trí trận hiện tại
-          path.lineTo(endX, endY); // Di chuyển ngang đến trận hiện tại
+          path.lineTo(
+            currentRoundX,
+            currentY,
+          ); // Di chuyển ngang đến trận hiện tại
 
           canvas.drawPath(path, paint);
         }
