@@ -50,10 +50,8 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
         // Trong thực tế, gọi API để lấy dữ liệu mới
         setState(() {
           // Giả lập cập nhật với dữ liệu mẫu
-          _tournament = _tournament.copyWith(
-            name: '${_tournament.name} (Đã cập nhật)',
-            type: _tournament.type, // Giữ nguyên loại
-          );
+      
+          _tournament.name = '${_tournament.name} (Đã cập nhật)';
         });
       }
     });
@@ -108,7 +106,7 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_tournament.name),
+        title: Text(_tournament.name ?? ''),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),

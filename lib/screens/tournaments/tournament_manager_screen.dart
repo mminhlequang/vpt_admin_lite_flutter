@@ -52,14 +52,12 @@ class _TournamentManagerScreenState extends State<TournamentManagerScreen>
 
           // Màn hình quản lý gói đăng ký
           PackagesScreen(
-            tournamentId: widget.tournament.id,
-            tournamentName: widget.tournament.name,
+            tournament: widget.tournament,
           ),
 
           // Màn hình quản lý đội tham gia
           TeamsScreen(
-            tournamentId: widget.tournament.id,
-            tournamentName: widget.tournament.name,
+            tournament: widget.tournament,
           ),
         ],
       ),

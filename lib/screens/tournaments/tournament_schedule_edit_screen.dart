@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:internal_core/setup/app_utils.dart';
 import 'package:intl/intl.dart';
 import '../../models/tournament.dart';
+import '../../models/round.dart';
+import '../../models/match.dart';
 import '../../utils/constants.dart';
+import '../../utils/utils.dart';
 import '../../widgets/common/loading_overlay.dart';
 
 class TournamentScheduleEditScreen extends StatefulWidget {
@@ -21,14 +26,55 @@ class TournamentScheduleEditScreen extends StatefulWidget {
 
 class _TournamentScheduleEditScreenState
     extends State<TournamentScheduleEditScreen> {
-  late List<Match> _matches;
+  List<Round> _rounds = [];
   bool _isLoading = false;
+  String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    // Tạo bản sao của danh sách trận đấu để tránh thay đổi trực tiếp trên dữ liệu ban đầu
-    _matches = List.from(widget.tournament.matches);
+    _loadRounds();
+  }
+
+  // Tải danh sách vòng đấu từ server
+  Future<void> _loadRounds() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final response = await appDioClient.get(
+        '/tournament/get_rounds',
+        queryParameters: {'tournament_id': widget.tournament.id},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['status']) {
+          final roundsData = data['data'] as List;
+          setState(() {
+            _rounds = roundsData.map((round) => Round.fromJson(round)).toList();
+            _isLoading = false;
+          });
+        } else {
+          setState(() {
+            _errorMessage = data['message'] ?? 'Không thể tải vòng đấu';
+            _isLoading = false;
+          });
+        }
+      } else {
+        setState(() {
+          _errorMessage = 'Lỗi kết nối: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Lỗi: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _save() async {
@@ -36,42 +82,67 @@ class _TournamentScheduleEditScreenState
       _isLoading = true;
     });
 
-    // Trong ứng dụng thực tế, cần gọi API để lưu dữ liệu
-    await Future.delayed(
-      const Duration(seconds: 1),
-    ); // Giả lập thời gian gọi API
+    try {
+      // Gọi API để lưu dữ liệu các vòng đấu và trận đấu
+      for (final round in _rounds) {
+        // Trong thực tế, bạn sẽ gọi API để cập nhật từng vòng đấu
+        await appDioClient.post(
+          '/tournament/update_round',
+          data: {
+            'tournament_id': widget.tournament.id,
+            'round_id': round.id,
+            'matches': round.matches.map((m) => m.toJson()).toList(),
+          },
+        );
+      }
 
-    // Tạo đối tượng Tournament mới với danh sách trận đấu đã cập nhật
-    final updatedTournament = widget.tournament.copyWith(matches: _matches);
+      // Cập nhật giải đấu với dữ liệu mới
+      final updatedTournament = widget.tournament;
+      // Cập nhật danh sách rounds
+      updatedTournament.rounds = _rounds;
 
-    setState(() {
-      _isLoading = false;
-    });
+      setState(() {
+        _isLoading = false;
+      });
 
-    // Gọi callback để truyền dữ liệu về màn hình cha
-    widget.onSave(updatedTournament);
+      // Gọi callback để truyền dữ liệu về màn hình cha
+      widget.onSave(updatedTournament);
 
-    // Quay về màn hình trước
-    if (mounted) {
-      Navigator.pop(context);
+      // Quay về màn hình trước
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Lỗi khi lưu dữ liệu: ${e.toString()}';
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_errorMessage)));
     }
   }
 
-  Future<void> _showEditMatchDialog(Match match, int index) async {
+  Future<void> _showEditMatchDialog(
+    Match match,
+    Round round,
+    int matchIndex,
+  ) async {
     final formKey = GlobalKey<FormState>();
-    final DateTime scheduledTime = match.scheduledTime ?? DateTime.now();
+    final DateTime scheduledTime = match.scheduledTime;
 
     DateTime selectedDate = scheduledTime;
     TimeOfDay selectedTime = TimeOfDay.fromDateTime(scheduledTime);
 
     final TextEditingController dateController = TextEditingController(
-      text: DateFormat('dd/MM/yyyy').format(scheduledTime),
+      text: DateFormat('dd-MM-yyyy').format(scheduledTime),
     );
     final TextEditingController timeController = TextEditingController(
       text: DateFormat('HH:mm').format(scheduledTime),
     );
-    final TextEditingController courtController = TextEditingController(
-      text: match.courtNumber ?? '',
+    final TextEditingController stadiumController = TextEditingController(
+      text: match.stadium ?? '',
     );
 
     await showDialog(
@@ -85,11 +156,16 @@ class _TournamentScheduleEditScreenState
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Text(
+                      'Vòng đấu: ${round.name}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
                         Expanded(
                           child: Text(
-                            match.team1.name,
+                            match.team1?.name ?? 'TBD',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                             textAlign: TextAlign.right,
                           ),
@@ -100,7 +176,7 @@ class _TournamentScheduleEditScreenState
                         ),
                         Expanded(
                           child: Text(
-                            match.team2.name,
+                            match.team2?.name ?? 'TBD',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                             textAlign: TextAlign.left,
                           ),
@@ -120,20 +196,32 @@ class _TournamentScheduleEditScreenState
                         final DateTime? pickedDate = await showDatePicker(
                           context: context,
                           initialDate: selectedDate,
-                          firstDate: widget.tournament.startDate,
-                          lastDate: widget.tournament.endDate,
+                          firstDate:
+                              string2DateTime(
+                                widget.tournament.startDate ?? '',
+                                format: 'dd-MM-yyyy',
+                              ) ??
+                              DateTime.now(),
+                          lastDate:
+                              string2DateTime(
+                                widget.tournament.endDate ?? '',
+                                format: 'dd-MM-yyyy',
+                              ) ??
+                              DateTime.now(),
                         );
                         if (pickedDate != null) {
-                          selectedDate = DateTime(
-                            pickedDate.year,
-                            pickedDate.month,
-                            pickedDate.day,
-                            selectedTime.hour,
-                            selectedTime.minute,
-                          );
-                          dateController.text = DateFormat(
-                            'dd/MM/yyyy',
-                          ).format(selectedDate);
+                          setState(() {
+                            selectedDate = DateTime(
+                              pickedDate.year,
+                              pickedDate.month,
+                              pickedDate.day,
+                              selectedTime.hour,
+                              selectedTime.minute,
+                            );
+                            dateController.text = DateFormat(
+                              'dd-MM-yyyy',
+                            ).format(selectedDate);
+                          });
                         }
                       },
                       validator: (value) {
@@ -158,17 +246,19 @@ class _TournamentScheduleEditScreenState
                           initialTime: selectedTime,
                         );
                         if (pickedTime != null) {
-                          selectedTime = pickedTime;
-                          selectedDate = DateTime(
-                            selectedDate.year,
-                            selectedDate.month,
-                            selectedDate.day,
-                            pickedTime.hour,
-                            pickedTime.minute,
-                          );
-                          timeController.text = DateFormat(
-                            'HH:mm',
-                          ).format(selectedDate);
+                          setState(() {
+                            selectedTime = pickedTime;
+                            selectedDate = DateTime(
+                              selectedDate.year,
+                              selectedDate.month,
+                              selectedDate.day,
+                              pickedTime.hour,
+                              pickedTime.minute,
+                            );
+                            timeController.text = DateFormat(
+                              'HH:mm',
+                            ).format(selectedDate);
+                          });
                         }
                       },
                       validator: (value) {
@@ -180,7 +270,7 @@ class _TournamentScheduleEditScreenState
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: courtController,
+                      controller: stadiumController,
                       decoration: const InputDecoration(
                         labelText: 'Sân thi đấu',
                         border: OutlineInputBorder(),
@@ -208,18 +298,24 @@ class _TournamentScheduleEditScreenState
                     // Cập nhật thông tin trận đấu
                     final updatedMatch = Match(
                       id: match.id,
+                      roundId: match.roundId,
+                      team1Id: match.team1Id,
+                      team2Id: match.team2Id,
+                      stadium: stadiumController.text,
+                      scheduledTime: selectedDate,
+                      matchStatus: match.matchStatus,
+                      team1Score: match.team1Score,
+                      team2Score: match.team2Score,
+                      winnerId: match.winnerId,
                       team1: match.team1,
                       team2: match.team2,
-                      score1: match.score1,
-                      score2: match.score2,
-                      status: match.status,
-                      scheduledTime: selectedDate,
-                      courtNumber: courtController.text,
-                      winner: match.winner,
                     );
 
                     setState(() {
-                      _matches[index] = updatedMatch;
+                      final roundIndex = _rounds.indexOf(round);
+                      if (roundIndex != -1) {
+                        _rounds[roundIndex].matches[matchIndex] = updatedMatch;
+                      }
                     });
 
                     Navigator.pop(context);
@@ -255,23 +351,39 @@ class _TournamentScheduleEditScreenState
   }
 
   Widget _buildBody() {
-    // Lọc trận đấu sắp tới (chưa diễn ra hoặc đang diễn ra)
-    final upcomingMatches =
-        _matches
-            .where(
-              (m) =>
-                  m.status == MatchStatus.scheduled ||
-                  m.status == MatchStatus.ongoing,
-            )
-            .toList();
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-    // Lọc trận đấu đã hoàn thành
-    final completedMatches =
-        _matches.where((m) => m.status == MatchStatus.completed).toList();
+    if (_errorMessage.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              'Đã xảy ra lỗi:',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(_errorMessage),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _loadRounds,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
+          ],
+        ),
+      );
+    }
 
-    return upcomingMatches.isEmpty && completedMatches.isEmpty
-        ? _buildEmptyState()
-        : _buildMatchList(upcomingMatches, completedMatches);
+    if (_rounds.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return _buildRoundsList();
   }
 
   Widget _buildEmptyState() {
@@ -282,247 +394,225 @@ class _TournamentScheduleEditScreenState
           Icon(Icons.sports_tennis, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            'Chưa có trận đấu nào được lên lịch',
+            'Chưa có vòng đấu nào được tạo',
             style: TextStyle(fontSize: 18, color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              // Trong ứng dụng thực tế, cần triển khai chức năng thêm trận đấu mới
+              // Chuyển hướng đến màn hình quản lý vòng đấu
+              Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Chức năng thêm trận đấu mới sẽ được triển khai sau',
+                    'Vui lòng tạo vòng đấu trước khi chỉnh sửa lịch thi đấu',
                   ),
                 ),
               );
             },
             icon: const Icon(Icons.add),
-            label: const Text('Thêm trận đấu mới'),
+            label: const Text('Tạo vòng đấu mới'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMatchList(
-    List<Match> upcomingMatches,
-    List<Match> completedMatches,
-  ) {
+  Widget _buildRoundsList() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(UIConstants.defaultPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (upcomingMatches.isNotEmpty) ...[
-            const Text(
-              'Trận đấu sắp tới',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const SizedBox(height: 8),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: upcomingMatches.length,
-              itemBuilder: (context, index) {
-                final match = upcomingMatches[index];
-                final matchIndex = _matches.indexOf(match);
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    title: Row(
+          for (final round in _rounds) ...[
+            Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    color: Colors.blue[50],
+                    child: Row(
                       children: [
+                        const Icon(Icons.emoji_events, color: Colors.orange),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            match.team1.name,
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            'VS',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            match.team2.name,
-                            textAlign: TextAlign.left,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              DateFormat(
-                                'dd/MM/yyyy',
-                              ).format(match.scheduledTime ?? DateTime.now()),
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                            const SizedBox(width: 16),
-                            Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              DateFormat(
-                                'HH:mm',
-                              ).format(match.scheduledTime ?? DateTime.now()),
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              match.courtNumber ?? 'Chưa có sân',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                            const SizedBox(width: 16),
-                            Icon(Icons.flag, size: 14, color: Colors.grey[600]),
-                            const SizedBox(width: 4),
-                            Text(
-                              match.status == MatchStatus.scheduled
-                                  ? 'Chưa diễn ra'
-                                  : 'Đang diễn ra',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () => _showEditMatchDialog(match, matchIndex),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-          ],
-          if (completedMatches.isNotEmpty) ...[
-            const Text(
-              'Trận đấu đã hoàn thành',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const SizedBox(height: 8),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: completedMatches.length,
-              itemBuilder: (context, index) {
-                final match = completedMatches[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            match.team1.name,
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  match.winner?.id == match.team1.id
-                                      ? Colors.green
-                                      : null,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            '${match.score1} - ${match.score2}',
+                            round.name,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 18,
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: Text(
-                            match.team2.name,
-                            textAlign: TextAlign.left,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  match.winner?.id == match.team2.id
-                                      ? Colors.green
-                                      : null,
-                            ),
-                          ),
+                        Text(
+                          DateFormat('dd-MM-yyyy').format(round.startTime),
+                          style: TextStyle(color: Colors.grey[600]),
                         ),
                       ],
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              DateFormat(
-                                'dd/MM/yyyy',
-                              ).format(match.scheduledTime ?? DateTime.now()),
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                            const SizedBox(width: 16),
-                            Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              match.courtNumber ?? 'Không có sân',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    // Đã hoàn thành thì không cho phép chỉnh sửa
-                    trailing: const Icon(
-                      Icons.check_circle,
-                      color: Colors.green,
                     ),
                   ),
-                );
-              },
+                  if (round.matches.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(
+                        child: Text(
+                          'Chưa có trận đấu nào trong vòng này',
+                          style: TextStyle(fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: round.matches.length,
+                      separatorBuilder:
+                          (context, index) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final match = round.matches[index];
+                        return ListTile(
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  match.team1?.name ?? 'TBD',
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        match.winnerId == match.team1Id
+                                            ? Colors.green
+                                            : null,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                child:
+                                    match.matchStatus == MatchStatus.completed
+                                        ? Text(
+                                          '${match.team1Score ?? 0} - ${match.team2Score ?? 0}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        )
+                                        : const Text(
+                                          'VS',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  match.team2?.name ?? 'TBD',
+                                  textAlign: TextAlign.left,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        match.winnerId == match.team2Id
+                                            ? Colors.green
+                                            : null,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    size: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    DateFormat(
+                                      'dd-MM-yyyy',
+                                    ).format(match.scheduledTime),
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    DateFormat(
+                                      'HH:mm',
+                                    ).format(match.scheduledTime),
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on,
+                                    size: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    match.stadium ?? 'Chưa có sân',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Icon(
+                                    Icons.flag,
+                                    size: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    match.matchStatus == MatchStatus.pending
+                                        ? 'Chưa diễn ra'
+                                        : match.matchStatus ==
+                                            MatchStatus.ongoing
+                                        ? 'Đang diễn ra'
+                                        : 'Đã kết thúc',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          trailing:
+                              match.matchStatus == MatchStatus.completed
+                                  ? const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                  )
+                                  : IconButton(
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.blue,
+                                    ),
+                                    onPressed:
+                                        () => _showEditMatchDialog(
+                                          match,
+                                          round,
+                                          index,
+                                        ),
+                                  ),
+                        );
+                      },
+                    ),
+                ],
+              ),
             ),
           ],
           const SizedBox(height: 24),

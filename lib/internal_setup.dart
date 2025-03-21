@@ -15,7 +15,7 @@ internalSetup() {
       networkOptions: PNetworkOptionsImpl(
         loggingEnable: true,
         baseUrl: 'https://familyworld.xyz/api/',
-        baseUrlAsset: '',
+        baseUrlAsset: 'https://familyworld.xyz/',
         responsePrefixData: 'data',
         // errorInterceptor: (e) {
         //   print(e);

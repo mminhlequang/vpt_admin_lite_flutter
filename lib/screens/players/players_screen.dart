@@ -74,7 +74,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
     }
 
     return _players.where((player) {
-      return player.name.toLowerCase().contains(searchQuery) ||
+      return player.name?.toLowerCase().contains(searchQuery) ?? false ||
           (player.email?.toLowerCase().contains(searchQuery) ?? false) ||
           (player.phone?.contains(searchQuery) ?? false);
     }).toList();
@@ -157,41 +157,7 @@ class _PlayersScreenState extends State<PlayersScreen> {
     });
   }
 
-  void _updatePlayerStatus(Player player, RegistrationStatus status) {
-    // Trong thực tế, gọi API để cập nhật trạng thái
-    setState(() {
-      final index = _players.indexWhere((p) => p.id == player.id);
-      if (index != -1) {
-        _players[index] = player.copyWith(status: status);
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Cập nhật trạng thái thành ${status == RegistrationStatus.approved ? 'Đã duyệt' : 'Từ chối'}',
-        ),
-      ),
-    );
-  }
-
-  void _togglePlayerPaidStatus(Player player) {
-    // Trong thực tế, gọi API để cập nhật trạng thái thanh toán
-    setState(() {
-      final index = _players.indexWhere((p) => p.id == player.id);
-      if (index != -1) {
-        _players[index] = player.copyWith(hasPaid: !player.hasPaid);
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Cập nhật trạng thái thanh toán thành ${player.hasPaid ? 'Chưa thanh toán' : 'Đã thanh toán'}',
-        ),
-      ),
-    );
-  }
+   
 
   void _showAddPlayerDialog() {
     // Điều hướng đến màn hình tạo người chơi mới

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../models/tournament.dart';
-import '../../../utils/constants.dart';
+import 'package:intl/intl.dart';
+import '../../models/tournament.dart';
+import '../../models/match.dart';
+import '../../utils/constants.dart';
 import 'tournament_bracket_view.dart';
 
 class TournamentMatchesTab extends StatefulWidget {
@@ -53,13 +55,13 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                 ],
               ),
               // Nút chỉnh sửa lịch thi đấu
-              if (widget.tournament.status == TournamentStatus.preparing ||
-                  widget.tournament.status == TournamentStatus.ongoing)
-                TextButton.icon(
-                  onPressed: widget.onEditSchedule,
-                  icon: const Icon(Icons.edit_calendar),
-                  label: const Text('Chỉnh sửa lịch'),
-                ),
+              // if (widget.tournament.status == TournamentStatus.preparing ||
+              //     widget.tournament.status == TournamentStatus.ongoing)
+              TextButton.icon(
+                onPressed: widget.onEditSchedule,
+                icon: const Icon(Icons.edit_calendar),
+                label: const Text('Chỉnh sửa lịch'),
+              ),
             ],
           ),
         ),
@@ -79,13 +81,22 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
   }
 
   Widget _buildListView() {
+    // Lấy tất cả trận đấu từ tất cả vòng
+    final allMatches = <Match>[];
+    if (widget.tournament.rounds != null) {
+      for (final round in widget.tournament.rounds!) {
+        allMatches.addAll(round.matches);
+      }
+    }
+
+    // Phân loại các trận đấu
     final completedMatches =
-        widget.tournament.matches
-            .where((m) => m.status == MatchStatus.completed)
+        allMatches
+            .where((m) => m.matchStatus == MatchStatus.completed)
             .toList();
     final upcomingMatches =
-        widget.tournament.matches
-            .where((m) => m.status == MatchStatus.scheduled)
+        allMatches
+            .where((m) => m.matchStatus != MatchStatus.completed)
             .toList();
 
     return SingleChildScrollView(
@@ -122,12 +133,12 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  match.team1.name,
+                                  match.team1?.name ?? 'TBD',
                                   textAlign: TextAlign.right,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color:
-                                        match.winner?.id == match.team1.id
+                                        match.winnerId == match.team1Id
                                             ? Colors.green
                                             : null,
                                   ),
@@ -138,7 +149,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                                   horizontal: 16,
                                 ),
                                 child: Text(
-                                  '${match.score1} - ${match.score2}',
+                                  '${match.team1Score ?? 0} - ${match.team2Score ?? 0}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
@@ -147,12 +158,12 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                               ),
                               Expanded(
                                 child: Text(
-                                  match.team2.name,
+                                  match.team2?.name ?? 'TBD',
                                   textAlign: TextAlign.left,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color:
-                                        match.winner?.id == match.team2.id
+                                        match.winnerId == match.team2Id
                                             ? Colors.green
                                             : null,
                                   ),
@@ -171,7 +182,9 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${match.scheduledTime!.day}/${match.scheduledTime!.month} ${match.scheduledTime!.hour}:${match.scheduledTime!.minute.toString().padLeft(2, '0')}',
+                                DateFormat(
+                                  'dd/MM HH:mm',
+                                ).format(match.scheduledTime),
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               const SizedBox(width: 16),
@@ -182,7 +195,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                match.courtNumber ?? 'TBD',
+                                match.stadium ?? 'TBD',
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                             ],
@@ -224,7 +237,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  match.team1.name,
+                                  match.team1?.name ?? 'TBD',
                                   textAlign: TextAlign.right,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
@@ -243,7 +256,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                               ),
                               Expanded(
                                 child: Text(
-                                  match.team2.name,
+                                  match.team2?.name ?? 'TBD',
                                   textAlign: TextAlign.left,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
@@ -263,7 +276,9 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${match.scheduledTime!.day}/${match.scheduledTime!.month} ${match.scheduledTime!.hour}:${match.scheduledTime!.minute.toString().padLeft(2, '0')}',
+                                DateFormat(
+                                  'dd/MM HH:mm',
+                                ).format(match.scheduledTime),
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               const SizedBox(width: 16),
@@ -274,11 +289,31 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                match.courtNumber ?? 'TBD',
+                                match.stadium ?? 'TBD',
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                             ],
                           ),
+                          if (match.matchStatus == MatchStatus.ongoing)
+                            Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.orange),
+                              ),
+                              child: const Text(
+                                'Đang diễn ra',
+                                style: TextStyle(
+                                  color: Colors.orange,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -286,246 +321,183 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                 );
               },
             ),
-          const SizedBox(height: 24),
-          if (widget.tournament.status == TournamentStatus.ongoing)
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: widget.onUpdateResults,
-                icon: const Icon(Icons.update),
-                label: const Text('Cập nhật kết quả'),
-              ),
-            ),
         ],
       ),
     );
   }
 
   void _showMatchDetailsDialog(Match match) {
-    // Hiển thị dialog chi tiết trận đấu khi người dùng nhấn vào một trận
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
             title: Text(
-              match.status == MatchStatus.completed
-                  ? 'Kết quả trận đấu'
-                  : 'Thông tin trận đấu',
+              _getRoundName(match.roundId),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Thông tin đội và điểm số
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        match.team1?.name ?? 'TBD',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color:
+                              match.winnerId == match.team1Id
+                                  ? Colors.green
+                                  : null,
+                        ),
+                      ),
                     ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                match.team1.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color:
-                                      match.winner?.id == match.team1.id
-                                          ? Colors.green
-                                          : null,
-                                ),
-                              ),
-                            ),
-                            if (match.status == MatchStatus.completed)
-                              Text(
-                                '${match.score1} - ${match.score2}',
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child:
+                          match.matchStatus == MatchStatus.completed
+                              ? Text(
+                                '${match.team1Score ?? 0} - ${match.team2Score ?? 0}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 20,
                                 ),
                               )
-                            else
-                              const Text(
+                              : const Text(
                                 'VS',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                                  fontSize: 20,
                                 ),
                               ),
-                            Expanded(
-                              child: Text(
-                                match.team2.name,
-                                textAlign: TextAlign.right,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color:
-                                      match.winner?.id == match.team2.id
-                                          ? Colors.green
-                                          : null,
-                                ),
-                              ),
-                            ),
-                          ],
+                    ),
+                    Expanded(
+                      child: Text(
+                        match.team2?.name ?? 'TBD',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color:
+                              match.winnerId == match.team2Id
+                                  ? Colors.green
+                                  : null,
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Thông tin lịch thi đấu
-                  if (match.scheduledTime != null) ...[
-                    _buildInfoRow(
-                      'Thời gian:',
-                      '${match.scheduledTime!.day}/${match.scheduledTime!.month}/${match.scheduledTime!.year} ${match.scheduledTime!.hour}:${match.scheduledTime!.minute.toString().padLeft(2, '0')}',
-                    ),
-                    const SizedBox(height: 8),
                   ],
-
-                  _buildInfoRow(
-                    'Địa điểm:',
-                    match.courtNumber ?? 'Chưa xác định',
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      DateFormat('dd/MM/yyyy').format(match.scheduledTime),
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(width: 16),
+                    Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      DateFormat('HH:mm').format(match.scheduledTime),
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      match.stadium ?? 'Chưa có sân',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
                   ),
-                  const SizedBox(height: 8),
-
-                  _buildInfoRow(
-                    'Trạng thái:',
-                    match.status == MatchStatus.completed
-                        ? 'Đã hoàn thành'
-                        : match.status == MatchStatus.ongoing
-                        ? 'Đang diễn ra'
-                        : match.status == MatchStatus.scheduled
-                        ? 'Đã lên lịch'
-                        : 'Đã hủy',
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(match.matchStatus).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: _getStatusColor(match.matchStatus),
+                    ),
                   ),
-
-                  // Thông tin đội tham gia
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Thành viên đội:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  child: Text(
+                    _getStatusText(match.matchStatus),
+                    style: TextStyle(color: _getStatusColor(match.matchStatus)),
                   ),
-                  const SizedBox(height: 8),
-
-                  // Thành viên đội 1
-                  _buildTeamMembersInfo(match.team1),
-                  const SizedBox(height: 8),
-
-                  // Thành viên đội 2
-                  _buildTeamMembersInfo(match.team2),
-                ],
-              ),
+                ),
+              ],
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Đóng'),
               ),
-              if (match.status == MatchStatus.scheduled &&
-                  (widget.tournament.status == TournamentStatus.preparing ||
-                      widget.tournament.status == TournamentStatus.ongoing))
+              if (match.matchStatus != MatchStatus.completed)
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context);
-                    widget.onEditSchedule();
+                    Navigator.of(context).pop();
+                    widget.onUpdateResults();
                   },
-                  child: const Text('Chỉnh sửa'),
+                  child: const Text('Cập nhật kết quả'),
                 ),
             ],
           ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ],
-    );
+  String _getRoundName(int roundId) {
+    if (widget.tournament.rounds == null) return 'Trận đấu';
+
+    for (final round in widget.tournament.rounds!) {
+      if (round.id == roundId) {
+        return round.name;
+      }
+    }
+    return 'Trận đấu';
   }
 
-  Widget _buildTeamMembersInfo(Team team) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            team.name,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const Divider(),
-          ...team.players.map(
-            (player) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor:
-                        player.sex == 1 ? Colors.blue[100] : Colors.pink[100],
-                    child: Text(
-                      player.name.substring(0, 1).toUpperCase(),
-                      style: TextStyle(
-                        color:
-                            player.sex == 1
-                                ? Colors.blue[800]
-                                : Colors.pink[800],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          player.name,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        if (player.email != null)
-                          Text(
-                            player.email!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    player.sex == 1 ? Icons.male : Icons.female,
-                    color: player.sex == 1 ? Colors.blue : Colors.pink,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Color _getStatusColor(MatchStatus status) {
+    switch (status) {
+      case MatchStatus.pending:
+        return Colors.grey;
+      case MatchStatus.ongoing:
+        return Colors.orange;
+      case MatchStatus.completed:
+        return Colors.green;
+      case MatchStatus.cancelled:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusText(MatchStatus status) {
+    switch (status) {
+      case MatchStatus.pending:
+        return 'Chưa diễn ra';
+      case MatchStatus.ongoing:
+        return 'Đang diễn ra';
+      case MatchStatus.completed:
+        return 'Đã hoàn thành';
+      case MatchStatus.cancelled:
+        return 'Đã hủy';
+      default:
+        return 'Không xác định';
+    }
   }
 }

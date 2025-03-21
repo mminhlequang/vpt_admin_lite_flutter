@@ -1,280 +1,138 @@
-import 'player.dart';
+import 'category.dart';
+import 'round.dart';
+import 'team.dart';
+import 'tour_package.dart';
 
 class Tournament {
-  final int id;
-  final String name;
-  final DateTime startDate;
-  final DateTime endDate;
-  final int type; // 1: singles, 2: doubles
-  final List<String>? genderRestriction; // ['male', 'female', 'mixed']
-  final int numberOfTeams;
-  final List<Team> teams;
-  final List<Match> matches;
-  final TournamentStatus status;
-  final String? imageUrl;
-  final String? description;
-  final int? categoryId;
-  final String? city;
-  final String? surface;
-  final double? prize;
-  final int? packageId;
+  int? id;
+  String? name;
+  String? avatar;
+  String? city;
+  int? type;
+  List<TourPackage>? packages;
+
+  int? numberOfTeam;
+  String? genderRestriction;
+  Category? category;
+  String? startDate;
+  String? endDate;
+  dynamic drawSize;
+  String? surface;
+  int? prize;
+  int? totalPrize;
+  dynamic website;
+  dynamic ticket;
+  dynamic profile;
+  dynamic linkFb;
+  dynamic linkInstagram;
+  dynamic linkTwitter;
+  String? content;
+
+  List<Team>? teams;
+  List<Round>? rounds;
 
   Tournament({
-    required this.id,
-    required this.name,
-    required this.startDate,
-    required this.endDate,
-    required this.type,
-    this.genderRestriction,
-    required this.numberOfTeams,
-    this.teams = const [],
-    this.matches = const [],
-    this.status = TournamentStatus.preparing,
-    this.imageUrl,
-    this.description,
-    this.categoryId,
+    this.id,
+    this.name,
+    this.avatar,
     this.city,
+    this.type,
+    this.packages,
+    this.numberOfTeam,
+    this.genderRestriction,
+    this.category,
+    this.startDate,
+    this.endDate,
+    this.drawSize,
     this.surface,
     this.prize,
-    this.packageId,
+    this.totalPrize,
+    this.website,
+    this.ticket,
+    this.profile,
+    this.linkFb,
+    this.linkInstagram,
+    this.linkTwitter,
+    this.content,
+    this.teams,
+    this.rounds,
   });
 
-  // Tạo từ JSON
-  factory Tournament.fromJson(Map<String, dynamic> json) {
-    return Tournament(
-      id: json['id'] is String ? int.parse(json['id']) : json['id'],
-      name: json['name'] ?? '',
-      startDate:
-          json['startDate'] != null
-              ? DateTime.parse(json['startDate'])
-              : DateTime.now(),
-      endDate:
-          json['endDate'] != null
-              ? DateTime.parse(json['endDate'])
-              : DateTime.now().add(Duration(days: 1)),
-      type:
-          json['type'] is String
-              ? int.parse(json['type'])
-              : (json['type'] ?? 1),
-      genderRestriction:
-          json['genderRestriction'] is List
-              ? (json['genderRestriction'] as List).cast<String>()
-              : json['genderRestriction'] is String
-              ? [json['genderRestriction']]
-              : ['mixed'],
-      numberOfTeams:
-          json['numberOfTeams'] is String
-              ? int.parse(json['numberOfTeams'])
-              : (json['numberOfTeams'] ?? 2),
-      teams:
-          json['teams'] is List
-              ? (json['teams'] as List)
-                  .map((team) => Team.fromJson(team))
-                  .toList()
-              : [],
-      matches:
-          json['matches'] is List
-              ? (json['matches'] as List)
-                  .map((match) => Match.fromJson(match))
-                  .toList()
-              : [],
-      status:
-          json['status'] != null
-              ? TournamentStatus.values.firstWhere(
-                (e) => e.toString().split('.').last == json['status'],
-                orElse: () => TournamentStatus.preparing,
-              )
-              : TournamentStatus.preparing,
-      imageUrl: json['imageUrl'] ?? json['image_url'],
-      description: json['description'],
-      categoryId:
-          json['categoryId'] is String
-              ? int.parse(json['categoryId'])
-              : json['categoryId'],
-      city: json['city'],
-      surface: json['surface'],
-      prize:
-          json['prize'] != null
-              ? double.tryParse(json['prize'].toString())
-              : null,
-      packageId:
-          json['packageId'] is String
-              ? int.parse(json['packageId'])
-              : json['packageId'],
-    );
+  Tournament.fromJson(Map<String, dynamic> json) {
+    id = json["id"];
+    name = json["name"];
+    avatar = json["avatar"];
+    city = json["city"];
+    type = json["type"];
+    packages =
+        json["packages"] == null
+            ? null
+            : (json["packages"] as List)
+                .map((e) => TourPackage.fromJson(e))
+                .toList();
+    numberOfTeam = json["number_of_team"];
+    genderRestriction = json["gender_restriction"];
+    category =
+        json["category"] == null ? null : Category.fromJson(json["category"]);
+    startDate = json["start_date"];
+    endDate = json["end_date"];
+    drawSize = json["draw_size"];
+    surface = json["surface"];
+    prize = json["prize"];
+    totalPrize = json["total_prize"];
+    website = json["website"];
+    ticket = json["ticket"];
+    profile = json["profile"];
+    linkFb = json["link_fb"];
+    linkInstagram = json["link_instagram"];
+    linkTwitter = json["link_twitter"];
+    content = json["content"];
+    teams =
+        json["teams"] == null
+            ? []
+            : json["teams"].map((e) => Team.fromJson(e)).toList();
+    rounds =
+        json["rounds"] == null
+            ? []
+            : json["rounds"].map((e) => Round.fromJson(e)).toList();
   }
 
-  // Chuyển đổi thành JSON
+  static List<Tournament> fromList(List<Map<String, dynamic>> list) {
+    return list.map(Tournament.fromJson).toList();
+  }
+
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'startDate': startDate.toIso8601String(),
-      'endDate': endDate.toIso8601String(),
-      'type': type,
-      'genderRestriction': genderRestriction,
-      'numberOfTeams': numberOfTeams,
-      'teams': teams.map((team) => team.toJson()).toList(),
-      'matches': matches.map((match) => match.toJson()).toList(),
-      'status': status.toString().split('.').last,
-      'imageUrl': imageUrl,
-      'description': description,
-      'categoryId': categoryId,
-      'city': city,
-      'surface': surface,
-      'prize': prize,
-      'packageId': packageId,
-    };
-  }
-
-  // Tạo bản sao với một số thuộc tính được cập nhật
-  Tournament copyWith({
-    int? id,
-    String? name,
-    DateTime? startDate,
-    DateTime? endDate,
-    int? type,
-    List<String>? genderRestriction,
-    int? numberOfTeams,
-    List<Team>? teams,
-    List<Match>? matches,
-    TournamentStatus? status,
-    String? imageUrl,
-    String? description,
-    int? categoryId,
-    String? city,
-    String? surface,
-    double? prize,
-    int? packageId,
-  }) {
-    return Tournament(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      startDate: startDate ?? this.startDate,
-      endDate: endDate ?? this.endDate,
-      type: type ?? this.type,
-      genderRestriction: genderRestriction ?? this.genderRestriction,
-      numberOfTeams: numberOfTeams ?? this.numberOfTeams,
-      teams: teams ?? this.teams,
-      matches: matches ?? this.matches,
-      status: status ?? this.status,
-      imageUrl: imageUrl ?? this.imageUrl,
-      description: description ?? this.description,
-      categoryId: categoryId ?? this.categoryId,
-      city: city ?? this.city,
-      surface: surface ?? this.surface,
-      prize: prize ?? this.prize,
-      packageId: packageId ?? this.packageId,
-    );
-  }
-}
-
-class Team {
-  final String id;
-  final String name;
-  final List<Player> players;
-
-  Team({required this.id, required this.name, required this.players});
-
-  // Tạo từ JSON
-  factory Team.fromJson(Map<String, dynamic> json) {
-    return Team(
-      id: json['id']?.toString() ?? '0',
-      name: json['name'] ?? 'Đội không tên',
-      players:
-          json['players'] is List
-              ? (json['players'] as List)
-                  .map((player) => Player.fromJson(player))
-                  .toList()
-              : [],
-    );
-  }
-
-  // Chuyển đổi thành JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'players': players.map((player) => player.toJson()).toList(),
-    };
-  }
-}
-
-class Match {
-  final String id;
-  final Team team1;
-  final Team team2;
-  final int? score1;
-  final int? score2;
-  final MatchStatus status;
-  final DateTime? scheduledTime;
-  final String? courtNumber;
-  final Team? winner;
-
-  Match({
-    required this.id,
-    required this.team1,
-    required this.team2,
-    this.score1,
-    this.score2,
-    this.status = MatchStatus.scheduled,
-    this.scheduledTime,
-    this.courtNumber,
-    this.winner,
-  });
-
-  // Tạo từ JSON
-  factory Match.fromJson(Map<String, dynamic> json) {
-    return Match(
-      id: json['id']?.toString() ?? '0',
-      team1:
-          json['team1'] is Map
-              ? Team.fromJson(json['team1'])
-              : Team(id: '0', name: 'Đội 1', players: []),
-      team2:
-          json['team2'] is Map
-              ? Team.fromJson(json['team2'])
-              : Team(id: '0', name: 'Đội 2', players: []),
-      score1:
-          json['score1'] is String
-              ? int.tryParse(json['score1'])
-              : json['score1'],
-      score2:
-          json['score2'] is String
-              ? int.tryParse(json['score2'])
-              : json['score2'],
-      status:
-          json['status'] != null
-              ? MatchStatus.values.firstWhere(
-                (e) => e.toString().split('.').last == json['status'],
-                orElse: () => MatchStatus.scheduled,
-              )
-              : MatchStatus.scheduled,
-      scheduledTime:
-          json['scheduledTime'] != null
-              ? DateTime.tryParse(json['scheduledTime'])
-              : null,
-      courtNumber: json['courtNumber']?.toString(),
-      winner: json['winner'] is Map ? Team.fromJson(json['winner']) : null,
-    );
-  }
-
-  // Chuyển đổi thành JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'team1': team1.toJson(),
-      'team2': team2.toJson(),
-      'score1': score1,
-      'score2': score2,
-      'status': status.toString().split('.').last,
-      'scheduledTime': scheduledTime?.toIso8601String(),
-      'courtNumber': courtNumber,
-      'winner': winner?.toJson(),
-    };
+    final Map<String, dynamic> _data = <String, dynamic>{};
+    _data["id"] = id;
+    _data["name"] = name;
+    _data["avatar"] = avatar;
+    _data["city"] = city;
+    _data["type"] = type;
+    if (packages != null) {
+      _data["packages"] = packages?.map((e) => e.toJson()).toList();
+    }
+    _data["number_of_team"] = numberOfTeam;
+    _data["gender_restriction"] = genderRestriction;
+    if (category != null) {
+      _data["category"] = category?.toJson();
+    }
+    _data["start_date"] = startDate;
+    _data["end_date"] = endDate;
+    _data["draw_size"] = drawSize;
+    _data["surface"] = surface;
+    _data["prize"] = prize;
+    _data["total_prize"] = totalPrize;
+    _data["website"] = website;
+    _data["ticket"] = ticket;
+    _data["profile"] = profile;
+    _data["link_fb"] = linkFb;
+    _data["link_instagram"] = linkInstagram;
+    _data["link_twitter"] = linkTwitter;
+    _data["content"] = content;
+    _data["teams"] = teams?.map((e) => e.toJson()).toList();
+    _data["rounds"] = rounds?.map((e) => e.toJson()).toList();
+    return _data;
   }
 }
 
 enum TournamentStatus { preparing, ongoing, completed, cancelled }
-
-enum MatchStatus { scheduled, ongoing, completed, cancelled }

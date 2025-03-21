@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:internal_core/internal_core.dart';
 import 'package:internal_network/network_resources/resources.dart';
 import 'package:vpt_admin_lite_flutter/config/routes.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
@@ -94,9 +95,10 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       setState(() {
         _filteredTournaments =
             _tournaments.where((tournament) {
-              return tournament.name.toLowerCase().contains(
-                query.toLowerCase(),
-              );
+              return tournament.name?.toLowerCase().contains(
+                    query.toLowerCase(),
+                  ) ??
+                  false;
             }).toList();
       });
     }
@@ -178,46 +180,31 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       child: InkWell(
         onTap: () => _navigateToTournamentDetail(tournament),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8.0),
-                child:
-                    tournament.imageUrl != null
-                        ? Image.network(
-                          correctUrlImage(tournament.imageUrl!),
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 100,
-                              height: 100,
-                              color: Colors.grey[300],
-                              child: Icon(
-                                Icons.sports_tennis,
-                                size: 48,
-                                color: Colors.grey[600],
-                              ),
-                            );
-                          },
-                        )
-                        : Container(
-                          width: 100,
-                          height: 100,
-                          color: Colors.grey[300],
-                          child: Icon(
-                            Icons.sports_tennis,
-                            size: 48,
-                            color: Colors.grey[600],
-                          ),
-                        ),
+                child: WidgetAppImage(
+                  imageUrl: tournament.avatar ?? '',
+                  height: 120,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(
+                      child: Icon(
+                        Icons.sports_tennis,
+                        size: 48,
+                        color: Colors.grey[600],
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(width: 16.0),
               Text(
-                tournament.name,
+                tournament.name ?? '',
                 style: const TextStyle(
                   fontSize: 18.0,
                   fontWeight: FontWeight.bold,
@@ -231,7 +218,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                   const Icon(Icons.calendar_today, size: 16.0),
                   const SizedBox(width: 4.0),
                   Text(
-                    '${_formatDate(tournament.startDate)} - ${_formatDate(tournament.endDate)}',
+                    '${tournament.startDate} - ${tournament.endDate}',
                     style: TextStyle(color: Colors.grey[700]),
                   ),
                 ],
@@ -251,10 +238,10 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
               const SizedBox(height: 4.0),
               Row(
                 children: [
-                  _buildTypeBadge(tournament.type),
+                  _buildTypeBadge(tournament.category?.numberOfPlayer == 1),
                   const SizedBox(width: 8.0),
                   if (tournament.genderRestriction != null)
-                    ..._buildGenderBadges(tournament.genderRestriction!),
+                    ..._buildGenderBadges(tournament.category?.sex ?? 2),
                 ],
               ),
 
@@ -281,7 +268,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStatusBadge(tournament.status),
+                  // _buildStatusBadge(tournament.status),
                   if (_isAdmin)
                     Row(
                       children: [
@@ -341,25 +328,36 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
     );
   }
 
-  Widget _buildTypeBadge(int type) {
+  Widget _buildTypeBadge(bool isSingle) {
     return Chip(
-      label: Text(type == 1 ? 'Đấu đơn' : 'Đấu đôi'),
-      backgroundColor: type == 1 ? Colors.purple[50] : Colors.indigo[50],
+      label: Text(isSingle ? 'Đấu đơn' : 'Đấu đôi'),
+      backgroundColor: isSingle ? Colors.purple[50] : Colors.indigo[50],
       padding: EdgeInsets.zero,
       labelStyle: TextStyle(
-        color: type == 1 ? Colors.purple[700] : Colors.indigo[700],
+        color: isSingle ? Colors.purple[700] : Colors.indigo[700],
         fontSize: 12,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 
-  List<Widget> _buildGenderBadges(List<String> genders) {
+  //sex = 1: nam, 2: nữ, 3: nam/nữ
+  List<Widget> _buildGenderBadges(int sex) {
     List<Widget> badges = [];
 
+    List<String> genders = [];
+
+    if (sex == 1) {
+      genders = ['male'];
+    } else if (sex == 2) {
+      genders = ['female'];
+    } else {
+      genders = ['mixed'];
+    }
+
     for (String gender in genders) {
-      Color color;
-      IconData icon;
+      late Color color;
+      late IconData icon;
 
       switch (gender.toLowerCase()) {
         case 'male':

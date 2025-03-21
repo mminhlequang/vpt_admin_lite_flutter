@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:vpt_admin_lite_flutter/screens/players/player_detail_screen.dart';
 import '../../models/player.dart';
 
 String correctUrlImage(String? url) {
@@ -37,7 +39,7 @@ class PlayerListItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        player.name.isEmpty ? 'Chưa đặt tên' : player.name,
+                        player.name?.isEmpty == true ? 'Chưa đặt tên' : player.name ?? '',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -69,19 +71,19 @@ class PlayerListItem extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      player.gender == 'male' ? Icons.male : Icons.female,
+                      player.sex == 1 ? Icons.male : Icons.female,
                       color:
-                          player.gender == 'male'
+                          player.sex == 1
                               ? Colors.blue
                               : Colors.pinkAccent,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      player.gender == 'male' ? 'Nam' : 'Nữ',
+                      player.sex == 1 ? 'Nam' : 'Nữ',
                       style: TextStyle(
                         color:
-                            player.gender == 'male'
+                            player.sex == 1
                                 ? Colors.blue
                                 : Colors.pinkAccent,
                         fontWeight: FontWeight.w500,
@@ -89,33 +91,33 @@ class PlayerListItem extends StatelessWidget {
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.amber[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.military_tech,
-                        size: 16,
-                        color: Colors.amber[800],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Hạng: ${player.rank > 0 ? player.rank.toString() : "Chưa xếp hạng"}',
-                        style: TextStyle(
-                          color: Colors.amber[800],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Container(
+                //   padding: const EdgeInsets.symmetric(
+                //     horizontal: 8,
+                //     vertical: 4,
+                //   ),
+                //   decoration: BoxDecoration(
+                //     color: Colors.amber[100],
+                //     borderRadius: BorderRadius.circular(12),
+                //   ),
+                //   child: Row(
+                //     children: [
+                //       Icon(
+                //         Icons.military_tech,
+                //         size: 16,
+                //         color: Colors.amber[800],
+                //       ),
+                //       const SizedBox(width: 4),
+                //       Text(
+                //         'Hạng: ${player.rank > 0 ? player.rank.toString() : "Chưa xếp hạng"}',
+                //         style: TextStyle(
+                //           color: Colors.amber[800],
+                //           fontWeight: FontWeight.bold,
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
               ],
             ),
 
@@ -128,7 +130,7 @@ class PlayerListItem extends StatelessWidget {
             ],
 
             const SizedBox(height: 16),
-            _buildActionButtons(),
+            _buildActionButtons(context),
           ],
         ),
       ),
@@ -146,15 +148,15 @@ class PlayerListItem extends StatelessWidget {
     return CircleAvatar(
       radius: 28,
       backgroundColor:
-          player.gender == 'male' ? Colors.blue[100] : Colors.pink[100],
+          player.sex == 1 ? Colors.blue[100] : Colors.pink[100],
       child: Text(
-        player.name.isNotEmpty
-            ? player.name.substring(0, 1).toUpperCase()
+        player.name?.isNotEmpty == true
+            ? player.name?.substring(0, 1).toUpperCase() ?? '?'
             : '?',
         style: TextStyle(
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: player.gender == 'male' ? Colors.blue[800] : Colors.pink[800],
+          color: player.sex == 1 ? Colors.blue[800] : Colors.pink[800],
         ),
       ),
     );
@@ -239,7 +241,7 @@ class PlayerListItem extends StatelessWidget {
                   _buildInfoItem(
                     Icons.cake,
                     'Ngày sinh',
-                    player.birth_date ?? 'Không rõ',
+                    player.birthDate ?? 'Không rõ',
                   ),
                   _buildInfoItem(
                     Icons.person,
@@ -287,13 +289,13 @@ class PlayerListItem extends StatelessWidget {
                   _buildInfoItem(
                     Icons.back_hand,
                     'Thuận tay',
-                    player.back_hand ?? 'Không rõ',
+                    player.backHand ?? 'Không rõ',
                   ),
-                  _buildInfoItem(
-                    Icons.sports,
-                    'HLV',
-                    player.coach ?? 'Không rõ',
-                  ),
+                  // _buildInfoItem(
+                  //   Icons.sports,
+                  //   'HLV',
+                  //   player.coach ?? 'Không rõ',
+                  // ),
                 ],
               ),
             ],
@@ -303,47 +305,47 @@ class PlayerListItem extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Thành tích
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Thành tích',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _buildStatBox(
-                  'Thắng',
-                  player.total_win.toString(),
-                  Colors.green[100]!,
-                  Colors.green[800]!,
-                ),
-                const SizedBox(width: 8),
-                _buildStatBox(
-                  'Thua',
-                  player.total_lose.toString(),
-                  Colors.red[100]!,
-                  Colors.red[800]!,
-                ),
-                const SizedBox(width: 8),
-                _buildStatBox(
-                  'Thắng đôi',
-                  player.total_win_doubles.toString(),
-                  Colors.blue[100]!,
-                  Colors.blue[800]!,
-                ),
-                const SizedBox(width: 8),
-                _buildStatBox(
-                  'Thua đôi',
-                  player.total_lose_doubles.toString(),
-                  Colors.orange[100]!,
-                  Colors.orange[800]!,
-                ),
-              ],
-            ),
-          ],
-        ),
+        // Column(
+        //   crossAxisAlignment: CrossAxisAlignment.start,
+        //   children: [
+        //     const Text(
+        //       'Thành tích',
+        //       style: TextStyle(fontWeight: FontWeight.bold),
+        //     ),
+        //     const SizedBox(height: 8),
+        //     Row(
+        //       children: [
+        //         _buildStatBox(
+        //           'Thắng',
+        //           player.totalWin.toString(),
+        //           Colors.green[100]!,
+        //           Colors.green[800]!,
+        //         ),
+        //         const SizedBox(width: 8),
+        //         _buildStatBox(
+        //           'Thua',
+        //           player.total_lose.toString(),
+        //           Colors.red[100]!,
+        //           Colors.red[800]!,
+        //         ),
+        //         const SizedBox(width: 8),
+        //         _buildStatBox(
+        //           'Thắng đôi',
+        //           player.total_win_doubles.toString(),
+        //           Colors.blue[100]!,
+        //           Colors.blue[800]!,
+        //         ),
+        //         const SizedBox(width: 8),
+        //         _buildStatBox(
+        //           'Thua đôi',
+        //           player.total_lose_doubles.toString(),
+        //           Colors.orange[100]!,
+        //           Colors.orange[800]!,
+        //         ),
+        //       ],
+        //     ),
+        //   ],
+        // ),
 
         // Liên kết mạng xã hội
         if (_hasSocialLinks()) ...[
@@ -428,40 +430,48 @@ class PlayerListItem extends StatelessWidget {
   }
 
   bool _hasSocialLinks() {
-    return player.link_facebook != null ||
-        player.link_twitter != null ||
-        player.link_instagram != null ||
-        player.link_youtube != null;
+    return player.linkFacebook != null ||
+        player.linkTwitter != null ||
+        player.linkInstagram != null ||
+        player.linkYoutube != null;
   }
 
   Widget _buildSocialLinks() {
     return Row(
       children: [
-        if (player.link_facebook != null)
+        if (player.linkFacebook != null)
           IconButton(
             icon: const Icon(Icons.facebook, color: Colors.blue),
-            onPressed: () {},
+            onPressed: () {
+              launchUrl(Uri.parse(player.linkFacebook!));
+            },
           ),
-        if (player.link_twitter != null)
+        if (player.linkTwitter != null)
           IconButton(
             icon: const Icon(Icons.alternate_email, color: Colors.lightBlue),
-            onPressed: () {},
+            onPressed: () {
+              launchUrl(Uri.parse(player.linkTwitter!));
+            },
           ),
-        if (player.link_instagram != null)
+        if (player.linkInstagram != null)
           IconButton(
             icon: const Icon(Icons.camera_alt, color: Colors.purple),
-            onPressed: () {},
+            onPressed: () {
+              launchUrl(Uri.parse(player.linkInstagram!));
+            },
           ),
-        if (player.link_youtube != null)
+        if (player.linkYoutube != null)
           IconButton(
             icon: const Icon(Icons.play_arrow, color: Colors.red),
-            onPressed: () {},
+            onPressed: () {
+              launchUrl(Uri.parse(player.linkYoutube!));
+            },
           ),
       ],
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -471,7 +481,7 @@ class PlayerListItem extends StatelessWidget {
             icon: const Icon(Icons.phone, color: Colors.green),
             tooltip: 'Gọi điện',
             onPressed: () {
-              // Xử lý sự kiện gọi điện
+              launchUrl(Uri.parse('tel:${player.phone}'));
             },
           ),
         // Thêm nút email nếu có email
@@ -480,13 +490,18 @@ class PlayerListItem extends StatelessWidget {
             icon: const Icon(Icons.email, color: Colors.blue),
             tooltip: 'Gửi email',
             onPressed: () {
-              // Xử lý sự kiện gửi email
+              launchUrl(Uri.parse('mailto:${player.email}'));
             },
           ),
         const SizedBox(width: 8),
         ElevatedButton.icon(
           onPressed: () {
-            // Mở chi tiết người chơi
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PlayerDetailScreen(player: player),
+              ),
+            );
           },
           icon: const Icon(Icons.visibility),
           label: const Text('Xem chi tiết'),

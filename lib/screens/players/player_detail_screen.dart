@@ -57,8 +57,6 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
           const SizedBox(height: 24),
           _buildPersonalInfo(),
           const SizedBox(height: 24),
-          _buildStatusInfo(),
-          const SizedBox(height: 24),
           _buildTournamentHistory(),
           const SizedBox(height: 24),
           _buildActions(),
@@ -80,16 +78,16 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
             CircleAvatar(
               radius: 50,
               backgroundColor:
-                  _player.gender == 'male'
+                  _player.sex == 1
                       ? Colors.blue[100]
                       : Colors.pink[100],
               child: Text(
-                _player.name.substring(0, 1).toUpperCase(),
+                _player.name?.substring(0, 1).toUpperCase() ?? 'U',
                 style: TextStyle(
                   fontSize: 40,
                   fontWeight: FontWeight.bold,
                   color:
-                      _player.gender == 'male'
+                      _player.sex == 1
                           ? Colors.blue[800]
                           : Colors.pink[800],
                 ),
@@ -106,16 +104,16 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      _player.gender == 'male' ? Icons.male : Icons.female,
+                      _player.sex == 1 ? Icons.male : Icons.female,
                       color:
-                          _player.gender == 'male' ? Colors.blue : Colors.pink,
+                          _player.sex == 1 ? Colors.blue : Colors.pink,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _player.gender == 'male' ? 'Nam' : 'Nữ',
+                      _player.sex == 1 ? 'Nam' : 'Nữ',
                       style: TextStyle(
                         color:
-                            _player.gender == 'male'
+                            _player.sex == 1
                                 ? Colors.blue
                                 : Colors.pink,
                       ),
@@ -125,7 +123,7 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
               ),
               const SizedBox(width: 12),
               Text(
-                _player.name,
+                _player.name ?? 'Unknown',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -137,15 +135,15 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    _player.gender == 'male' ? Icons.male : Icons.female,
-                    color: _player.gender == 'male' ? Colors.blue : Colors.pink,
+                    _player.sex == 1 ? Icons.male : Icons.female,
+                    color: _player.sex == 1 ? Colors.blue : Colors.pink,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    _player.gender == 'male' ? 'Nam' : 'Nữ',
+                      _player.sex == 1 ? 'Nam' : 'Nữ',
                     style: TextStyle(
                       color:
-                          _player.gender == 'male' ? Colors.blue : Colors.pink,
+                          _player.sex == 1 ? Colors.blue : Colors.pink,
                     ),
                   ),
                 ],
@@ -179,49 +177,14 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
               'Số điện thoại',
               _player.phone ?? 'Chưa cập nhật',
             ),
-            _buildInfoRow(
-              Icons.calendar_today,
-              'Ngày đăng ký',
-              '${_player.registrationDate.day}/${_player.registrationDate.month}/${_player.registrationDate.year}',
-            ),
+           
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusInfo() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Trạng thái',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const Divider(),
-            Row(
-              children: [
-                const Text('Tình trạng:'),
-                const Spacer(),
-                _buildStatusBadge(_player.status),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Text('Thanh toán:'),
-                const Spacer(),
-                _buildPaymentBadge(_player.hasPaid),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+   
 
   Widget _buildTournamentHistory() {
     // Giả lập danh sách giải đấu đã tham gia
@@ -339,42 +302,7 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
     );
   }
 
-  Widget _buildStatusBadge(RegistrationStatus status) {
-    Color backgroundColor;
-    String text;
-
-    switch (status) {
-      case RegistrationStatus.approved:
-        backgroundColor = Colors.green;
-        text = 'Đã duyệt';
-        break;
-      case RegistrationStatus.pending:
-        backgroundColor = Colors.orange;
-        text = 'Chờ duyệt';
-        break;
-      case RegistrationStatus.rejected:
-        backgroundColor = Colors.red;
-        text = 'Từ chối';
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-
+    
   Widget _buildPaymentBadge(bool hasPaid) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -518,82 +518,79 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
               },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              initialValue: _numberOfTeams.toString(),
+            DropdownButtonFormField<int>(
+              value: _numberOfTeams,
               decoration: const InputDecoration(
                 labelText: 'Số đội tham gia',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.people),
               ),
-              keyboardType: TextInputType.number,
+              items: [4, 8, 16, 32, 64, 128].map((int value) {
+                return DropdownMenuItem<int>(
+                  value: value,
+                  child: Text('$value đội'),
+                );
+              }).toList(),
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập số đội tham gia';
-                }
-                try {
-                  final teams = int.parse(value);
-                  if (teams <= 0) {
-                    return 'Số đội phải lớn hơn 0';
-                  }
-                } catch (e) {
-                  return 'Vui lòng nhập số hợp lệ';
+                if (value == null) {
+                  return 'Vui lòng chọn số đội tham gia';
                 }
                 return null;
               },
               onChanged: (value) {
-                try {
-                  _numberOfTeams = int.parse(value);
-                } catch (e) {
-                  // Xử lý lỗi nếu không thể chuyển đổi
+                if (value != null) {
+                  setState(() {
+                    _numberOfTeams = value;
+                  });
                 }
               },
             ),
-            const SizedBox(height: 16),
-            const Text('Giới tính cho phép tham gia:'),
-            Wrap(
-              spacing: 8.0,
-              children: [
-                FilterChip(
-                  label: const Text('Nam'),
-                  selected: _genderRestriction.contains('male'),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _genderRestriction.add('male');
-                      } else {
-                        _genderRestriction.remove('male');
-                      }
-                    });
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Nữ'),
-                  selected: _genderRestriction.contains('female'),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _genderRestriction.add('female');
-                      } else {
-                        _genderRestriction.remove('female');
-                      }
-                    });
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Hỗn hợp'),
-                  selected: _genderRestriction.contains('mixed'),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _genderRestriction.add('mixed');
-                      } else {
-                        _genderRestriction.remove('mixed');
-                      }
-                    });
-                  },
-                ),
-              ],
-            ),
+            // const SizedBox(height: 16),
+            // const Text('Giới tính cho phép tham gia:'),
+            // Wrap(
+            //   spacing: 8.0,
+            //   children: [
+            //     FilterChip(
+            //       label: const Text('Nam'),
+            //       selected: _genderRestriction.contains('male'),
+            //       onSelected: (selected) {
+            //         setState(() {
+            //           if (selected) {
+            //             _genderRestriction.add('male');
+            //           } else {
+            //             _genderRestriction.remove('male');
+            //           }
+            //         });
+            //       },
+            //     ),
+            //     FilterChip(
+            //       label: const Text('Nữ'),
+            //       selected: _genderRestriction.contains('female'),
+            //       onSelected: (selected) {
+            //         setState(() {
+            //           if (selected) {
+            //             _genderRestriction.add('female');
+            //           } else {
+            //             _genderRestriction.remove('female');
+            //           }
+            //         });
+            //       },
+            //     ),
+            //     FilterChip(
+            //       label: const Text('Hỗn hợp'),
+            //       selected: _genderRestriction.contains('mixed'),
+            //       onSelected: (selected) {
+            //         setState(() {
+            //           if (selected) {
+            //             _genderRestriction.add('mixed');
+            //           } else {
+            //             _genderRestriction.remove('mixed');
+            //           }
+            //         });
+            //       },
+            //     ),
+            //   ],
+            // ),
           ],
         ),
       ),

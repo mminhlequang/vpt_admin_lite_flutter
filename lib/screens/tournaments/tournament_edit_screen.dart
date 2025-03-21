@@ -4,9 +4,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
+import 'package:internal_core/internal_core.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/tournament.dart';
-import '../../models/category.dart'; 
+import '../../models/category.dart';
 import '../../widgets/loading_indicator.dart';
 
 class TournamentEditScreen extends StatefulWidget {
@@ -28,8 +29,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
   late TextEditingController _prizeController;
   late DateTime _startDate;
   late DateTime _endDate;
-  late int _tournamentType;
-  late List<String> _genderRestriction;
+  late String _genderRestriction;
   late int _numberOfTeams;
   late int _selectedCategoryId;
   late int _packageId;
@@ -52,22 +52,24 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     final tournament = widget.tournament;
     _nameController = TextEditingController(text: tournament.name);
     _descriptionController = TextEditingController(
-      text: tournament.description ?? '',
+      text: tournament.content ?? '',
     );
     _cityController = TextEditingController(text: tournament.city ?? '');
     _surfaceController = TextEditingController(text: tournament.surface ?? '');
     _prizeController = TextEditingController(
       text: tournament.prize?.toString() ?? '0',
     );
-    _startDate = tournament.startDate;
-    _endDate = tournament.endDate;
-    _tournamentType = tournament.type;
-    _genderRestriction =
-        tournament.genderRestriction ?? ['male', 'female', 'mixed'];
-    _numberOfTeams = tournament.numberOfTeams;
-    _selectedCategoryId = tournament.categoryId ?? 1;
-    _packageId = tournament.packageId ?? 1;
-    _currentImageUrl = tournament.imageUrl;
+    _genderRestriction = tournament.genderRestriction ?? 'mixed';
+    _startDate =
+        string2DateTime(tournament.startDate ?? '', format: 'yyyy-MM-dd') ??
+        DateTime.now();
+    _endDate =
+        string2DateTime(tournament.endDate ?? '', format: 'yyyy-MM-dd') ??
+        DateTime.now();
+    _numberOfTeams = tournament.numberOfTeam ?? 0;
+    _selectedCategoryId = tournament.category?.id ?? 1;
+    _packageId = tournament.packages?.first.id ?? 1;
+    _currentImageUrl = tournament.avatar;
   }
 
   @override
@@ -88,14 +90,14 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
 
     try {
       final response = await appDioClient.get('/tournament/get_categories');
-      
-      
+
       if (response.statusCode == 200) {
         final data = response.data;
         if (data['status']) {
           final categoriesData = data['data'] as List;
           setState(() {
-            _categories = categoriesData.map((item) => Category.fromJson(item)).toList();
+            _categories =
+                categoriesData.map((item) => Category.fromJson(item)).toList();
             _isLoadingCategories = false;
           });
         } else {
@@ -114,10 +116,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
         );
       }
     }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
@@ -181,12 +179,11 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
         // Xử lý lỗi nếu không thể chuyển đổi
       }
 
-       
       final formData = FormData.fromMap({
         'id': widget.tournament.id,
         'name': _nameController.text,
-        'start_date': _startDate.toIso8601String().split('T')[0],
-        'end_date': _endDate.toIso8601String().split('T')[0],
+        'start_date': _startDate.formatDate(formatType: 'yyyy-MM-dd'),
+        'end_date': _endDate.formatDate(formatType: 'yyyy-MM-dd'),
         'city': _cityController.text,
         'surface': _surfaceController.text,
         'gender_restriction': _genderRestriction,
@@ -194,16 +191,12 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
         'prize': prize,
         'package_id': _packageId,
         'content': _descriptionController.text,
-        'type': _tournamentType,
         'category_id': _selectedCategoryId,
       });
-      
+
       if (_avatarFile != null) {
         formData.files.add(
-          MapEntry(
-            'avatar',
-            await MultipartFile.fromFile(_avatarFile!.path),
-          ),
+          MapEntry('avatar', await MultipartFile.fromFile(_avatarFile!.path)),
         );
       } else if (_pickedBytes != null) {
         formData.files.add(
@@ -213,14 +206,12 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
           ),
         );
       }
-      
+
       await appDioClient.post(
         '/tournament/update',
         data: formData,
         options: Options(
-          headers: {
-            'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ',
-          },
+          headers: {'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ'},
         ),
       );
 
@@ -349,7 +340,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                       prefixIcon: Icon(Icons.calendar_today),
                     ),
                     controller: TextEditingController(
-                      text: _formatDate(_startDate),
+                      text: _startDate.formatDate(),
                     ),
                     onTap: () => _selectDate(context, true),
                   ),
@@ -364,7 +355,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                       prefixIcon: Icon(Icons.calendar_today),
                     ),
                     controller: TextEditingController(
-                      text: _formatDate(_endDate),
+                      text: _endDate.formatDate(),
                     ),
                     onTap: () => _selectDate(context, false),
                   ),
@@ -511,17 +502,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                 if (value != null) {
                   setState(() {
                     _selectedCategoryId = value;
-                    final selectedCategory = _categories.firstWhere(
-                      (c) => c.id == value,
-                      orElse:
-                          () => Category(
-                            id: 1,
-                            name: '',
-                            numberOfPlayer: 1,
-                            sex: 0,
-                          ),
-                    );
-                    _tournamentType = selectedCategory.numberOfPlayer;
                   });
                 }
               },
@@ -557,81 +537,48 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
               },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              initialValue: _numberOfTeams.toString(),
+            DropdownButtonFormField<int>(
+              value: _numberOfTeams,
               decoration: const InputDecoration(
                 labelText: 'Số đội tham gia',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.people),
               ),
-              keyboardType: TextInputType.number,
+              items:
+                  [4, 8, 16, 32, 64, 128].map((int value) {
+                    return DropdownMenuItem<int>(
+                      value: value,
+                      child: Text('$value đội'),
+                    );
+                  }).toList(),
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập số đội tham gia';
-                }
-                try {
-                  final teams = int.parse(value);
-                  if (teams <= 0) {
-                    return 'Số đội phải lớn hơn 0';
-                  }
-                } catch (e) {
-                  return 'Vui lòng nhập số hợp lệ';
+                if (value == null) {
+                  return 'Vui lòng chọn số đội tham gia';
                 }
                 return null;
               },
               onChanged: (value) {
-                try {
-                  _numberOfTeams = int.parse(value);
-                } catch (e) {
-                  // Xử lý lỗi nếu không thể chuyển đổi
+                if (value != null) {
+                  setState(() {
+                    _numberOfTeams = value;
+                  });
                 }
               },
             ),
             const SizedBox(height: 16),
             const Text('Giới tính cho phép tham gia:'),
-            Wrap(
-              spacing: 8.0,
-              children: [
-                FilterChip(
-                  label: const Text('Nam'),
-                  selected: _genderRestriction.contains('male'),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _genderRestriction.add('male');
-                      } else {
-                        _genderRestriction.remove('male');
-                      }
-                    });
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Nữ'),
-                  selected: _genderRestriction.contains('female'),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _genderRestriction.add('female');
-                      } else {
-                        _genderRestriction.remove('female');
-                      }
-                    });
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Hỗn hợp'),
-                  selected: _genderRestriction.contains('mixed'),
-                  onSelected: (selected) {
-                    setState(() {
-                      if (selected) {
-                        _genderRestriction.add('mixed');
-                      } else {
-                        _genderRestriction.remove('mixed');
-                      }
-                    });
-                  },
-                ),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment<String>(value: 'male', label: Text('Nam')),
+                ButtonSegment<String>(value: 'female', label: Text('Nữ')),
+                ButtonSegment<String>(value: 'mixed', label: Text('Hỗn hợp')),
               ],
+              selected: {_genderRestriction},
+              onSelectionChanged: (Set<String> newSelection) {
+                setState(() {
+                  _genderRestriction = newSelection.first;
+                });
+              },
             ),
           ],
         ),

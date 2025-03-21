@@ -57,18 +57,18 @@ class _EditPlayerScreenState extends State<EditPlayerScreen> {
       text: widget.player.weight?.toString() ?? '',
     );
     _birthPlaceController = TextEditingController(
-      text: widget.player.birth_place ?? '',
+      text: widget.player.birthPlace ?? '',
     );
 
     // Xử lý ngày sinh
-    if (widget.player.birth_date != null) {
+    if (widget.player.birthDate != null) {
       _birthDateController = TextEditingController(
-        text: widget.player.birth_date,
+        text: widget.player.birthDate,
       );
       try {
         _selectedDate = DateFormat(
           'yyyy-MM-dd',
-        ).parse(widget.player.birth_date!);
+        ).parse(widget.player.birthDate!);
       } catch (e) {
         _birthDateController = TextEditingController();
       }
@@ -77,7 +77,7 @@ class _EditPlayerScreenState extends State<EditPlayerScreen> {
     }
 
     // Xử lý các trường kiểu chơi
-    _backHand = widget.player.back_hand ?? 'Left-Handed';
+    _backHand = widget.player.backHand ?? 'Left-Handed';
     _plays = widget.player.plays ?? 'Left-Handed';
 
     // Lưu URL avatar hiện tại

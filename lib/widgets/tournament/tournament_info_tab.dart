@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:internal_core/widgets/widgets.dart';
 import '../../../models/tournament.dart';
 import '../../../utils/constants.dart';
 import 'package:intl/intl.dart';
@@ -25,13 +26,13 @@ class TournamentInfoTab extends StatelessWidget {
         children: [
           _buildTournamentHeader(),
           const SizedBox(height: 24),
-          if (tournament.imageUrl != null) ...[
+          if (tournament.avatar != null) ...[
             _buildTournamentImage(),
             const SizedBox(height: 24),
           ],
           _buildTournamentDetails(),
           const SizedBox(height: 24),
-          if (tournament.description != null) ...[
+          if (tournament.content != null) ...[
             _buildTournamentDescription(),
             const SizedBox(height: 24),
           ],
@@ -52,12 +53,12 @@ class TournamentInfoTab extends StatelessWidget {
             const Icon(Icons.emoji_events, size: 48, color: Colors.amber),
             const SizedBox(height: 16),
             Text(
-              tournament.name,
+              tournament.name ?? '',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            _buildStatusBadge(tournament.status),
+            // _buildStatusBadge(tournament.status ?? TournamentStatus.preparing),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -65,7 +66,7 @@ class TournamentInfoTab extends StatelessWidget {
                 Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  '${_formatDate(tournament.startDate)} - ${_formatDate(tournament.endDate)}',
+                  '${tournament.startDate} - ${tournament.endDate}',
                   style: TextStyle(color: Colors.grey[600]),
                 ),
               ],
@@ -82,18 +83,11 @@ class TournamentInfoTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Image.network(
-            tournament.imageUrl!,
+          WidgetAppImage(
+            imageUrl: tournament.avatar,
             height: 200,
             width: double.infinity,
             fit: BoxFit.cover,
-            errorBuilder:
-                (context, error, stackTrace) => Container(
-                  height: 200,
-                  width: double.infinity,
-                  color: Colors.grey[300],
-                  child: const Center(child: Text('Không thể tải ảnh')),
-                ),
           ),
         ],
       ),
@@ -113,7 +107,7 @@ class TournamentInfoTab extends StatelessWidget {
             ),
             const Divider(),
             Html(
-              data: tournament.description!,
+              data: tournament.content!,
               style: {
                 "body": Style(margin: Margins.zero, padding: HtmlPaddings.zero),
                 "h2": Style(
@@ -152,30 +146,23 @@ class TournamentInfoTab extends StatelessWidget {
             const Divider(),
             _buildInfoRow(
               'Loại giải đấu:',
-              tournament.type == 1 ? 'Đấu đơn' : 'Đấu đôi',
+              tournament.category?.numberOfPlayer == 1 ? 'Đấu đơn' : 'Đấu đôi',
             ),
             _buildInfoRow(
               'Giới hạn:',
-              tournament.genderRestriction != null
-                  ? (tournament.genderRestriction!.contains('male') &&
-                          !tournament.genderRestriction!.contains('female')
-                      ? 'Nam'
-                      : !tournament.genderRestriction!.contains('male') &&
-                          tournament.genderRestriction!.contains('female')
-                      ? 'Nữ'
-                      : 'Nam & Nữ')
+              tournament.category?.sex == 1
+                  ? 'Nam'
+                  : tournament.category?.sex == 2
+                  ? 'Nữ'
                   : 'Nam & Nữ',
             ),
-            _buildInfoRow('Số đội:', '${tournament.numberOfTeams}'),
-            _buildInfoRow(
-              'Trận đấu đã hoàn thành:',
-              '${tournament.matches.where((m) => m.status == MatchStatus.completed).length}/${tournament.matches.length}',
-            ),
-            if (tournament.categoryId != null)
-              _buildInfoRow(
-                'Danh mục:',
-                _getCategoryName(tournament.categoryId!),
-              ),
+            _buildInfoRow('Số đội:', '${tournament.numberOfTeam}'),
+            // _buildInfoRow(
+            //   'Trận đấu đã hoàn thành:',
+            //   '${tournament.matches.where((m) => m.status == MatchStatus.completed).length}/${tournament.matches.length}',
+            // ),
+            if (tournament.category != null)
+              _buildInfoRow('Danh mục:', tournament.category!.name),
             if (tournament.city != null)
               _buildInfoRow('Thành phố:', tournament.city!),
             if (tournament.surface != null)
@@ -193,10 +180,10 @@ class TournamentInfoTab extends StatelessWidget {
 
   Widget _buildScheduleInfo() {
     // Thông tin về lịch trình sắp tới
-    final upcomingMatches =
-        tournament.matches
-            .where((m) => m.status == MatchStatus.scheduled)
-            .toList();
+    final upcomingMatches = [];
+    // tournament.matches
+    //     .where((m) => m.status == MatchStatus.scheduled)
+    //     .toList();
 
     return Card(
       child: Padding(
@@ -296,8 +283,8 @@ class TournamentInfoTab extends StatelessWidget {
           icon: const Icon(Icons.calendar_today),
           label: const Text('Xuất lịch'),
         ),
-        if (tournament.status == TournamentStatus.preparing ||
-            tournament.status == TournamentStatus.ongoing)
+        // if (tournament.status == TournamentStatus.preparing ||
+        //     tournament.status == TournamentStatus.ongoing)
           ElevatedButton.icon(
             onPressed: onEdit,
             icon: const Icon(Icons.edit),

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:vpt_admin_lite_flutter/models/category.dart';
+import 'package:vpt_admin_lite_flutter/models/tournament.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/player.dart';
 import '../../models/team.dart';
@@ -9,11 +10,9 @@ import '../../utils/constants.dart';
 import '../../widgets/loading_indicator.dart';
 
 class TeamsScreen extends StatefulWidget {
-  final int tournamentId;
-  final String? tournamentName;
+  final Tournament tournament;
 
-  const TeamsScreen({Key? key, required this.tournamentId, this.tournamentName})
-    : super(key: key);
+  const TeamsScreen({super.key, required this.tournament});
 
   @override
   State<TeamsScreen> createState() => _TeamsScreenState();
@@ -71,7 +70,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
     try {
       final response = await appDioClient.get(
         '/tournament/get_teams',
-        queryParameters: {'tournament_id': widget.tournamentId},
+        queryParameters: {'tournament_id': widget.tournament.id},
       );
 
       final List<Team> teams =
@@ -99,7 +98,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
     try {
       final response = await appDioClient.get(
         '/tournament/get_packages',
-        queryParameters: {'tournament_id': widget.tournamentId},
+        queryParameters: {'tournament_id': widget.tournament.id},
       );
 
       final List<dynamic> packagesData = response.data['data'] as List;
@@ -319,7 +318,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
       (p) => p.id == playerId,
       orElse: () => Player(id: -1, name: 'Không tìm thấy'),
     );
-    return player.name;
+    return player.name ?? '';
   }
 
   void _showTeamDetailsDialog(BuildContext context, Team team) {
@@ -491,7 +490,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                             _players.map((player) {
                               return DropdownMenuItem<int?>(
                                 value: player.id,
-                                child: Text(player.name),
+                                child: Text(player.name ?? ''),
                               );
                             }).toList(),
                         validator: (value) {
@@ -523,7 +522,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                             ..._players.map((player) {
                               return DropdownMenuItem<int?>(
                                 value: player.id,
-                                child: Text(player.name),
+                                child: Text(player.name ?? ''),
                               );
                             }).toList(),
                           ],
@@ -615,7 +614,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                           (p) => p.id == playerId1,
                           orElse: () => Player(id: -1, name: 'Không tìm thấy'),
                         );
-                        name = player.name;
+                        name = player.name ?? ''  ;
                       }
 
                       try {
@@ -626,7 +625,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                             'payment_status': paymentStatus,
                             'registration_status': registrationStatus,
                             'payment_code': paymentCode,
-                            'tournament_id': widget.tournamentId,
+                            'tournament_id': widget.tournament.id,
                             'player_id1': playerId1,
                             'player_id2': playerId2,
                             'package_id': packageId,
@@ -760,7 +759,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                             _players.map((player) {
                               return DropdownMenuItem<int?>(
                                 value: player.id,
-                                child: Text(player.name),
+                                child: Text(player.name ?? ''),
                               );
                             }).toList(),
                         validator: (value) {
@@ -792,7 +791,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                             ..._players.map((player) {
                               return DropdownMenuItem<int?>(
                                 value: player.id,
-                                child: Text(player.name),
+                                child: Text(player.name ?? ''),
                               );
                             }).toList(),
                           ],
@@ -887,7 +886,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                           (p) => p.id == playerId1,
                           orElse: () => Player(id: -1, name: 'Không tìm thấy'),
                         );
-                        name = player.name;
+                        name = player.name ?? '';
                       }
 
                       try {
@@ -899,7 +898,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                             'payment_status': paymentStatus,
                             'registration_status': registrationStatus,
                             'payment_code': paymentCode,
-                            'tournament_id': widget.tournamentId,
+                            'tournament_id': widget.tournament.id,
                             'player_id1': playerId1,
                             'player_id2': playerId2,
                             'package_id': packageId,
@@ -965,7 +964,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 try {
                   final response = await appDioClient.post(
                     '/tournament/delete_team',
-                    data: {'id': team.id, 'tournament_id': widget.tournamentId},
+                    data: {'id': team.id, 'tournament_id': widget.tournament.id},
                     options: Options(
                       headers: {'X-Api-Key': ApiConstants.apiKey},
                     ),
@@ -976,7 +975,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     throw Exception(
                       response.data['message'] ?? 'Không thể xóa đội',
                     );
-                  }
+                  } 
 
                   if (!mounted) return;
                   Navigator.of(context).pop();

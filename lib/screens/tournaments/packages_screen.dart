@@ -1,20 +1,20 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:vpt_admin_lite_flutter/models/tournament.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/tour_package.dart';
 import '../../models/tournament.dart' as tournament_model;
 import '../../models/category.dart';
 import '../../utils/constants.dart';
 import '../../widgets/loading_indicator.dart';
+import 'package:intl/intl.dart';
 
 class PackagesScreen extends StatefulWidget {
-  final int tournamentId;
-  final String? tournamentName;
+    final Tournament tournament; 
 
   const PackagesScreen({
     Key? key,
-    required this.tournamentId,
-    this.tournamentName,
+    required this.tournament,
   }) : super(key: key);
 
   @override
@@ -45,10 +45,9 @@ class _PackagesScreenState extends State<PackagesScreen> {
     });
 
     try {
-       
       final response = await appDioClient.get(
         '/tournament/get_packages',
-        queryParameters: {'tournament_id': widget.tournamentId},
+        queryParameters: {'tournament_id': widget.tournament.id},
       );
 
       if (response.statusCode == 200) {
@@ -85,10 +84,8 @@ class _PackagesScreenState extends State<PackagesScreen> {
       _isLoadingCategories = true;
     });
 
-    try { 
-      final response = await appDioClient.get(
-        '/tournament/get_categories',
-      );
+    try {
+      final response = await appDioClient.get('/tournament/get_categories');
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -116,20 +113,6 @@ class _PackagesScreenState extends State<PackagesScreen> {
     }
   }
 
-  String _getCategoryName(int categoryId) {
-    final category = _categories.firstWhere(
-      (c) => c.id == categoryId,
-      orElse:
-          () => Category(
-            id: -1,
-            name: 'Không tìm thấy',
-            numberOfPlayer: 1,
-            sex: 0,
-          ),
-    );
-    return category.name;
-  }
-
   String _getStatusText(int enable) {
     return enable == 1 ? 'Đang kích hoạt' : 'Đã tắt';
   }
@@ -142,18 +125,23 @@ class _PackagesScreenState extends State<PackagesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _buildBody(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_categories.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Vui lòng thêm danh mục trước')),
-            );
-            return;
-          }
-          _showAddPackageDialog(context);
-        },
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton:
+          _packages.isNotEmpty || _isLoading
+              ? null
+              : FloatingActionButton(
+                onPressed: () {
+                  if (_categories.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Vui lòng thêm danh mục trước'),
+                      ),
+                    );
+                    return;
+                  }
+                  _showAddPackageDialog(context);
+                },
+                child: const Icon(Icons.add),
+              ),
     );
   }
 
@@ -202,7 +190,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Giá: ${package.price?.toStringAsFixed(0) ?? '0'} VNĐ'),
+                Text('Giá: ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(package.price ?? 0)}'),
                 Text('Danh mục: ${package.category?.name ?? 'Không tìm thấy'}'),
                 Text(
                   'Trạng thái: ${_getStatusText(package.enable)}',
@@ -348,11 +336,10 @@ class _PackagesScreenState extends State<PackagesScreen> {
                       data: {
                         'name': name,
                         'enable': enable,
-                        'tour_id': widget.tournamentId,
+                        'tour_id': widget.tournament.id,
                         'category_id': categoryId,
                         'price': price,
                       },
-                       
                     );
 
                     if (response.statusCode != 200 ||
