@@ -24,12 +24,10 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
   late TabController _tabController;
   late Tournament _tournament = widget.tournament;
   bool _isLoading = false;
-  final Dio _dio = Dio();
 
   @override
   void initState() {
-    super.initState();
-    _dio.options.baseUrl = ApiConstants.baseUrl;
+    super.initState();  
     _tabController = TabController(length: 3, vsync: this);
   }
 

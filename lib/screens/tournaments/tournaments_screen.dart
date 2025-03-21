@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:internal_network/network_resources/resources.dart';
 import 'package:vpt_admin_lite_flutter/config/routes.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../models/tournament.dart';
 import '../../utils/constants.dart';
@@ -18,7 +20,6 @@ class TournamentsScreen extends StatefulWidget {
 }
 
 class _TournamentsScreenState extends State<TournamentsScreen> {
-  final Dio _dio = Dio();
   List<Tournament> _tournaments = [];
   List<Tournament> _filteredTournaments = [];
   bool _isLoading = false;
@@ -30,7 +31,6 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
   @override
   void initState() {
     super.initState();
-    _dio.options.baseUrl = ApiConstants.baseUrl;
     _loadTournaments();
 
     _searchController.addListener(() {
@@ -52,15 +52,11 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
     });
 
     try {
-       
-      final response = await _dio.get(
-        '/tournament',
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
-      );
+      final response = await appDioClient.get('/tournament');
 
       if (response.data['status'] == true && response.data['data'] != null) {
         final List<dynamic> data = response.data['data'];
-         final tournaments =
+        final tournaments =
             data.map((json) => Tournament.fromJson(json)).toList();
 
         setState(() {
@@ -511,11 +507,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       });
 
       // Gọi API trực tiếp để xóa giải đấu
-      final response = await _dio.post(
-        '/tournament/delete_tournament',
-        data: {'id': tournament.id},
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
-      );
+      final response = await appDioClient.post('/tournament/delete_tournament', data: {'id': tournament.id});
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Không thể xóa giải đấu');

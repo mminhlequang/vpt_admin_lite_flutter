@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/tour_package.dart';
 import '../../models/tournament.dart' as tournament_model;
 import '../../models/category.dart';
@@ -44,11 +45,10 @@ class _PackagesScreenState extends State<PackagesScreen> {
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.get(
-        '${ApiConstants.baseUrl}/tournament/get_packages',
+       
+      final response = await appDioClient.get(
+        '/tournament/get_packages',
         queryParameters: {'tournament_id': widget.tournamentId},
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
       );
 
       if (response.statusCode == 200) {
@@ -85,16 +85,9 @@ class _PackagesScreenState extends State<PackagesScreen> {
       _isLoadingCategories = true;
     });
 
-    try {
-      final dio = Dio();
-      final response = await dio.get(
-        '${ApiConstants.baseUrl}/tournament/get_categories',
-        options: Options(
-          headers: {
-            'X-Api-Key': ApiConstants.apiKey,
-            'X-CSRF-TOKEN': 'xUDZSvhETbuxr2owmJx5WVT6kORmY8Gb0n6NQhC3',
-          },
-        ),
+    try { 
+      final response = await appDioClient.get(
+        '/tournament/get_categories',
       );
 
       if (response.statusCode == 200) {
@@ -148,12 +141,6 @@ class _PackagesScreenState extends State<PackagesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Gói đăng ký - ${widget.tournamentName ?? ''}'),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
-        ],
-      ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -216,7 +203,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Giá: ${package.price?.toStringAsFixed(0) ?? '0'} VNĐ'),
-                Text('Danh mục: ${_getCategoryName(package.categoryId ?? 0)}'),
+                Text('Danh mục: ${package.category?.name ?? 'Không tìm thấy'}'),
                 Text(
                   'Trạng thái: ${_getStatusText(package.enable)}',
                   style: TextStyle(
@@ -356,9 +343,8 @@ class _PackagesScreenState extends State<PackagesScreen> {
                 if (formKey.currentState!.validate()) {
                   formKey.currentState!.save();
                   try {
-                    final dio = Dio();
-                    final response = await dio.post(
-                      '${ApiConstants.baseUrl}/tournament/create_packages',
+                    final response = await appDioClient.post(
+                      '/tournament/create_packages',
                       data: {
                         'name': name,
                         'enable': enable,
@@ -366,13 +352,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
                         'category_id': categoryId,
                         'price': price,
                       },
-                      options: Options(
-                        headers: {
-                          'X-Api-Key': ApiConstants.apiKey,
-                          'X-CSRF-TOKEN':
-                              'xUDZSvhETbuxr2owmJx5WVT6kORmY8Gb0n6NQhC3',
-                        },
-                      ),
+                       
                     );
 
                     if (response.statusCode != 200 ||
@@ -406,7 +386,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
   void _showEditPackageDialog(BuildContext context, TourPackage package) {
     final formKey = GlobalKey<FormState>();
     String name = package.name;
-    int categoryId = package.categoryId ?? 0;
+    int? categoryId = package.category?.id;
     double price = package.price?.toDouble() ?? 0;
     int enable = package.enable;
 

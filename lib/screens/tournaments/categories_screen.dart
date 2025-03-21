@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/category.dart'; 
 import '../../utils/constants.dart';
 import '../../widgets/loading_indicator.dart';
@@ -29,12 +30,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.get(
-        '${ApiConstants.baseUrl}/tournament/get_categories',
-        options: Options(headers: { 
-          'X-Api-Key': ApiConstants.apiKey,  }),
-      );
+      final response = await appDioClient.get('/tournament/get_categories');
       
       if (response.statusCode == 200) {
         final data = response.data;

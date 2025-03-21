@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/tournament.dart' hide Match, MatchStatus, Team;
 import '../../models/round.dart';
 import '../../models/match.dart' as match_model;
@@ -20,7 +21,6 @@ class MatchesScreen extends StatefulWidget {
 }
 
 class _MatchesScreenState extends State<MatchesScreen> {
-  final Dio _dio = Dio();
   final TextEditingController _stadiumController = TextEditingController();
   final TextEditingController _scheduledTimeController =
       TextEditingController();
@@ -54,7 +54,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
   @override
   void initState() {
     super.initState();
-    _dio.options.baseUrl = ApiConstants.baseUrl;
+
     _loadMatches();
     _loadAvailableTeams();
   }
@@ -75,13 +75,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
     });
 
     try {
-      final response = await _dio.get(
+      final response = await appDioClient.get(
         '/tournament/get_matches',
         queryParameters: {
           'tournament_id': widget.tournament.id,
           'round_id': widget.round.id,
         },
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
       );
 
       if (response.statusCode == 200) {
@@ -124,11 +123,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
     });
 
     try {
-        final response = await _dio.get(
-          '/tournament/get_teams',
-          queryParameters: {'tournament_id': widget.tournament.id},
-          options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
-        );
+      final response = await appDioClient.get(
+        '/tournament/get_teams',
+        queryParameters: {'tournament_id': widget.tournament.id},
+      );
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -321,7 +319,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     });
 
     try {
-      final response = await _dio.post(
+      final response = await appDioClient.post(
         '/tournament/create_match',
         data: {
           'round_id': widget.round.id,
@@ -330,7 +328,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
           'stadium': _stadiumController.text,
           'scheduled_time': _selectedScheduledTime!.toIso8601String(),
         },
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
       );
 
       if (response.statusCode == 201) {
@@ -526,7 +523,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     }
 
     try {
-      final response = await _dio.put(
+      final response = await appDioClient.put(
         '/tournament/update_match',
         data: {
           'id': match.id,
@@ -535,7 +532,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
           'team2_score': team2Score,
           'winner_id': winnerId,
         },
-        options: Options(headers: {'X-API-KEY': ApiConstants.apiKey}),
       );
 
       if (response.statusCode == 200) {
@@ -614,10 +610,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
     });
 
     try {
-      final response = await _dio.delete(
+      final response = await appDioClient.delete(
         '/tournament/delete_match',
         data: {'id': matchId},
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
       );
 
       if (response.statusCode == 200) {
@@ -704,10 +699,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
     });
 
     try {
-      final response = await _dio.post(
+      final response = await appDioClient.post(
         '/tournament/generate_matches',
         data: {'round_id': widget.round.id},
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
       );
 
       if (response.statusCode == 200) {

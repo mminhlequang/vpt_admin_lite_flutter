@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../utils/constants.dart';
 import '../../models/player.dart';
 
@@ -132,16 +133,10 @@ class _CreatePlayerScreenState extends State<CreatePlayerScreen> {
         }
 
         // Gửi request tạo player mới
-        final response = await Dio().post(
-          'https://familyworld.xyz/api/player/create',
+        final response = await appDioClient.post(
+          '/player/create',
           data: formData,
-          options: Options(
-            headers: {
-              'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ',
-              'X-CSRF-TOKEN': '4QrpOUUwy4IAZbaqCUgfxqUktr4ctaalFFQwP4wa',
-              'accept': '*/*',
-            },
-          ),
+          
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {

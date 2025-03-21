@@ -39,8 +39,8 @@ class _TournamentManagerScreenState extends State<TournamentManagerScreen>
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: 'Gói đăng ký', icon: Icon(Icons.card_membership)),
-            Tab(text: 'Đội tham gia', icon: Icon(Icons.groups)),
+            Tab(text: 'Gói đăng ký'),
+            Tab(text: 'Đội tham gia'),
           ],
         ),
       ),
@@ -51,24 +51,16 @@ class _TournamentManagerScreenState extends State<TournamentManagerScreen>
           // const CategoriesScreen(),
 
           // Màn hình quản lý gói đăng ký
-          widget.tournament != null
-              ? PackagesScreen(
-                tournamentId: widget.tournament!.id,
-                tournamentName: widget.tournament!.name,
-              )
-              : const Center(
-                child: Text('Vui lòng chọn giải đấu để xem các gói đăng ký'),
-              ),
+          PackagesScreen(
+            tournamentId: widget.tournament.id,
+            tournamentName: widget.tournament.name,
+          ),
 
           // Màn hình quản lý đội tham gia
-          widget.tournament != null
-              ? TeamsScreen(
-                tournamentId: widget.tournament!.id,
-                tournamentName: widget.tournament!.name,
-              )
-              : const Center(
-                child: Text('Vui lòng chọn giải đấu để xem đội tham gia'),
-              ),
+          TeamsScreen(
+            tournamentId: widget.tournament.id,
+            tournamentName: widget.tournament.name,
+          ),
         ],
       ),
     );

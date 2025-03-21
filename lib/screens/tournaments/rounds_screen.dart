@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/round.dart';
 import '../../models/tournament.dart';
 import '../../utils/constants.dart';
@@ -17,7 +18,6 @@ class RoundsScreen extends StatefulWidget {
 }
 
 class _RoundsScreenState extends State<RoundsScreen> {
-  final Dio _dio = Dio();
   final TextEditingController _roundNameController = TextEditingController();
   final TextEditingController _startTimeController = TextEditingController();
 
@@ -29,7 +29,7 @@ class _RoundsScreenState extends State<RoundsScreen> {
   @override
   void initState() {
     super.initState();
-    _dio.options.baseUrl = ApiConstants.baseUrl;
+     
     _loadRounds();
   }
 
@@ -47,10 +47,10 @@ class _RoundsScreenState extends State<RoundsScreen> {
     });
 
     try {
-      final response = await _dio.get(
+      final response = await appDioClient.get(
         '/tournament/get_rounds',
         queryParameters: {'tournament_id': widget.tournament.id},
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
+        
       );
 
       if (response.statusCode == 200) {
@@ -182,14 +182,16 @@ class _RoundsScreenState extends State<RoundsScreen> {
     });
 
     try {
-      final response = await _dio.post(
+      final response = await appDioClient.post(
         '/tournament/create_round',
         data: {
           'tournament_id': widget.tournament.id,
           'name': _roundNameController.text,
-          'start_time': DateFormat('yyyy-MM-dd HH:mm').format(_selectedStartTime!),
+          'start_time': DateFormat(
+            'yyyy-MM-dd HH:mm',
+          ).format(_selectedStartTime!),
         },
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
+        
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -328,15 +330,17 @@ class _RoundsScreenState extends State<RoundsScreen> {
     });
 
     try {
-      final response = await _dio.post(
+      final response = await appDioClient.post(
         '/tournament/update_round',
         data: {
           'id': roundId,
           'name': _roundNameController.text,
           'tournament_id': widget.tournament.id,
-          'start_time': DateFormat('yyyy-MM-dd HH:mm').format(_selectedStartTime!),
+          'start_time': DateFormat(
+            'yyyy-MM-dd HH:mm',
+          ).format(_selectedStartTime!),
         },
-        options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
+        
       );
 
       if (response.statusCode == 200) {
@@ -422,11 +426,11 @@ class _RoundsScreenState extends State<RoundsScreen> {
     });
 
     try {
-        final response = await _dio.delete(
-          '/tournament/delete_round',
-          data: {'id': roundId},
-          options: Options(headers: {'X-Api-Key': ApiConstants.apiKey}),
-        );
+      final response = await appDioClient.delete(
+        '/tournament/delete_round',
+        data: {'id': roundId},
+        
+      );
 
       if (response.statusCode == 200) {
         final data = response.data;

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/tournament.dart';
 import '../../models/category.dart'; 
 import '../../widgets/loading_indicator.dart';
@@ -86,13 +87,8 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.get(
-        'https://familyworld.xyz/api/tournament/get_categories',
-        options: Options(headers: {
-          'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ',
-        }),
-      );
+      final response = await appDioClient.get('/tournament/get_categories');
+      
       
       if (response.statusCode == 200) {
         final data = response.data;
@@ -185,7 +181,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
         // Xử lý lỗi nếu không thể chuyển đổi
       }
 
-      final dio = Dio();
+       
       final formData = FormData.fromMap({
         'id': widget.tournament.id,
         'name': _nameController.text,
@@ -218,8 +214,8 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
         );
       }
       
-      await dio.post(
-        'https://familyworld.xyz/api/tournament/update',
+      await appDioClient.post(
+        '/tournament/update',
         data: formData,
         options: Options(
           headers: {

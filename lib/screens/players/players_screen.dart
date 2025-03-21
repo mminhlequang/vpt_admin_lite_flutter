@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/player.dart';
 import '../../widgets/player/player_list_item.dart';
 import '../../utils/constants.dart';
@@ -10,7 +11,7 @@ import 'create_player_screen.dart';
 Future<List<Player>> fetchPlayers() async {
   List<Player> playersList = [];
   // Gọi API thực tế để lấy danh sách người chơi
-  final response = await Dio().get('https://familyworld.xyz/api/player');
+  final response = await appDioClient.get('player');
 
   if (response.statusCode == 200) {
     final data = json.decode(jsonEncode(response.data));

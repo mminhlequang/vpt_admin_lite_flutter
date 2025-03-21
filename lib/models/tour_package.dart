@@ -1,7 +1,9 @@
+import 'category.dart';
+
 class TourPackage {
   final int id;
   final String name;
-  final int? categoryId;
+  final Category? category;
   final int? tourId;
   final num? price;
   final int enable; // 0: Disabled, 1: Enabled
@@ -9,7 +11,7 @@ class TourPackage {
   TourPackage({
     required this.id,
     required this.name,
-    required this.categoryId,
+    required this.category,
     required this.tourId,
     required this.price,
     this.enable = 1,
@@ -20,10 +22,9 @@ class TourPackage {
     return TourPackage(
       id: json['id'] is String ? int.parse(json['id']) : json['id'],
       name: json['name'] ?? '',
-      categoryId:
-          json['category_id'] is String
-              ? int.parse(json['category_id'])
-              : json['category_id'],
+      category: json['category'] != null
+          ? Category.fromJson(json['category'])
+          : null,
       tourId:
           json['tour_id'] is String
               ? int.parse(json['tour_id'])
@@ -41,7 +42,7 @@ class TourPackage {
     return {
       'id': id,
       'name': name,
-      'category_id': categoryId,
+      'category': category?.toJson(),
       'tour_id': tourId,
       'price': price,
       'enable': enable,
@@ -52,7 +53,7 @@ class TourPackage {
   TourPackage copyWith({
     int? id,
     String? name,
-    int? categoryId,
+    Category? category,
     int? tourId,
     double? price,
     int? enable,
@@ -60,7 +61,7 @@ class TourPackage {
     return TourPackage(
       id: id ?? this.id,
       name: name ?? this.name,
-      categoryId: categoryId ?? this.categoryId,
+      category: category ?? this.category,
       tourId: tourId ?? this.tourId,
       price: price ?? this.price,
       enable: enable ?? this.enable,

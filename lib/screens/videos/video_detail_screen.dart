@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../utils/constants.dart';
 import '../../models/video.dart';
@@ -225,14 +226,9 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
 
       Navigator.pop(context); // Đóng dialog xác nhận
 
-      final dio = Dio();
-      dio.options.headers['X-Api-Key'] = 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ';
-      dio.options.headers['Content-Type'] = 'application/json';
-      dio.options.headers['X-CSRF-TOKEN'] =
-          'ZOIziJYP495Zp1o4JPDuhNQPz2mc1ksWTh1kvlYq';
-
-      final response = await dio.post(
-        'https://familyworld.xyz/api/video/delete',
+       
+      final response = await appDioClient.post(
+        '/video/delete',
         data: {'id': _video.id},
       );
 

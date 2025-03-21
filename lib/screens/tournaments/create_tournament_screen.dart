@@ -5,10 +5,11 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import 'dart:typed_data';
 import '../../models/tournament.dart';
 import '../../models/player.dart';
-import '../../models/category.dart'; 
+import '../../models/category.dart';
 import '../../widgets/loading_indicator.dart';
 
 class CreateTournamentScreen extends StatefulWidget {
@@ -67,20 +68,15 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.get(
-        'https://familyworld.xyz/api/tournament/get_categories',
-        options: Options(headers: {
-          'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ',
-        }),
-      );
-      
+      final response = await appDioClient.get('/tournament/get_categories');
+
       if (response.statusCode == 200) {
         final data = response.data;
         if (data['status']) {
           final categoriesData = data['data'] as List;
-          final categories = categoriesData.map((item) => Category.fromJson(item)).toList();
-          
+          final categories =
+              categoriesData.map((item) => Category.fromJson(item)).toList();
+
           setState(() {
             _categories = categories;
             if (categories.isNotEmpty) {
@@ -172,8 +168,6 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
       } catch (e) {
         // Xử lý lỗi nếu không thể chuyển đổi
       }
-
-      final dio = Dio();
       final formData = FormData.fromMap({
         'name': _nameController.text,
         'start_date': _startDate.toIso8601String().split('T')[0],
@@ -188,13 +182,10 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
         'type': _tournamentType,
         'category_id': _selectedCategoryId,
       });
-      
+
       if (_avatarFile != null) {
         formData.files.add(
-          MapEntry(
-            'avatar',
-            await MultipartFile.fromFile(_avatarFile!.path),
-          ),
+          MapEntry('avatar', await MultipartFile.fromFile(_avatarFile!.path)),
         );
       } else if (_pickedBytes != null) {
         formData.files.add(
@@ -204,16 +195,8 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
           ),
         );
       }
-      
-      await dio.post(
-        'https://familyworld.xyz/api/tournament/create',
-        data: formData,
-        options: Options(
-          headers: {
-            'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ',
-          },
-        ),
-      );
+
+      await appDioClient.post('/tournament/create', data: formData);
 
       if (mounted) {
         Navigator.of(context).pop(true);

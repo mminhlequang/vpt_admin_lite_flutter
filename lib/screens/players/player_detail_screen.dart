@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../models/player.dart';
 import '../../utils/constants.dart';
@@ -439,14 +440,8 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
 
       Navigator.pop(context); // Đóng dialog xác nhận
 
-      final dio = Dio();
-      dio.options.headers['X-Api-Key'] = 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ';
-      dio.options.headers['Content-Type'] = 'application/json';
-      dio.options.headers['X-CSRF-TOKEN'] =
-          'ZOIziJYP495Zp1o4JPDuhNQPz2mc1ksWTh1kvlYq';
-
-      final response = await dio.post(
-        'https://familyworld.xyz/api/player/delete',
+      final response = await appDioClient.post(
+        '/player/delete',
         data: {'id': _player.id},
       );
 

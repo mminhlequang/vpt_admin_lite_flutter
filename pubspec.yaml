@@ -55,17 +55,24 @@ dependencies:
   flutter_html: ^3.0.0
   file_picker: ^9.2.1
   firebase_core: ^3.12.1
-  intl: ^0.19.0
+  
   url_launcher: ^6.2.5
   
   # Thêm google_fonts
   google_fonts: ^6.2.1
   image_picker: ^1.1.2
   
-  # Firebase (optional, uncomment if needed)
-  # firebase_core: ^2.25.4
-  # firebase_auth: ^4.17.4
-  # cloud_firestore: ^4.15.4
+  internal_core:
+    git:
+      url: https://github.com/mminhlequang/internal_libs_flutter.git
+      path: core/
+  internal_network:
+    git:
+      url: https://github.com/mminhlequang/internal_libs_flutter.git
+      path: network/
+
+override_dependencies:
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:

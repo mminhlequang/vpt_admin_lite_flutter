@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../utils/constants.dart';
 import '../../models/video.dart';
 
@@ -86,16 +87,9 @@ class _CreateVideoScreenState extends State<CreateVideoScreen> {
         }
 
         // Gửi request tạo video mới
-        final response = await Dio().post(
-          'https://familyworld.xyz/api/video/create',
+        final response = await appDioClient.post(
+          '/video/create',
           data: formData,
-          options: Options(
-            headers: {
-              'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ',
-              'X-CSRF-TOKEN': '4QrpOUUwy4IAZbaqCUgfxqUktr4ctaalFFQwP4wa',
-              'accept': '*/*',
-            },
-          ),
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {

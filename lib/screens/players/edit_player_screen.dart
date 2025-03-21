@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../utils/constants.dart';
 import '../../models/player.dart';
@@ -174,16 +175,9 @@ class _EditPlayerScreenState extends State<EditPlayerScreen> {
         }
 
         // Gửi request cập nhật player
-        final response = await Dio().post(
-          'https://familyworld.xyz/api/player/update',
+        final response = await appDioClient.post(
+          '/player/update',
           data: formData,
-          options: Options(
-            headers: {
-              'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ',
-              'X-CSRF-TOKEN': '4QrpOUUwy4IAZbaqCUgfxqUktr4ctaalFFQwP4wa',
-              'accept': '*/*',
-            },
-          ),
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {

@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:vpt_admin_lite_flutter/models/category.dart';
+import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/team.dart';
 import '../../models/tour_package.dart';
 import '../../utils/constants.dart';
@@ -40,13 +42,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.get(
-        'https://familyworld.xyz/api/tournament/get_teams',
+      final response = await appDioClient.get(
+        '/tournament/get_teams',
         queryParameters: {'tournament_id': widget.tournamentId},
-        options: Options(
-          headers: {'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ'},
-        ),
       );
 
       final List<Team> teams =
@@ -72,13 +70,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
     });
 
     try {
-      final dio = Dio();
-      final response = await dio.get(
-        'https://familyworld.xyz/api/tournament/get_packages',
+      final response = await appDioClient.get(
+        '/tournament/get_packages',
         queryParameters: {'tournament_id': widget.tournamentId},
-        options: Options(
-          headers: {'X-Api-Key': 'whC]#}Z:&IP-tm7&Po_>y5qxB:ZVe^aQ'},
-        ),
       );
 
       final List<dynamic> packagesData = response.data['data'] as List;
@@ -161,7 +155,12 @@ class _TeamsScreenState extends State<TeamsScreen> {
           () => TourPackage(
             id: -1,
             name: 'Không tìm thấy',
-            categoryId: 0,
+            category: Category(
+              id: 0,
+              name: 'Không tìm thấy',
+              numberOfPlayer: 0,
+              sex: 0,
+            ),
             tourId: 0,
             price: 0,
           ),
@@ -172,12 +171,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Đội tham gia - ${widget.tournamentName ?? ''}'),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
-        ],
-      ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -534,9 +527,8 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 if (formKey.currentState!.validate()) {
                   formKey.currentState!.save();
                   try {
-                    final dio = Dio();
-                    final response = await dio.post(
-                      '${ApiConstants.baseUrl}/tournament/create_team',
+                    final response = await appDioClient.post(
+                      '/tournament/create_team',
                       data: {
                         'name': name,
                         'payment_status': paymentStatus,
