@@ -149,8 +149,8 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                     : RefreshIndicator(
                       onRefresh: _loadTournaments,
                       child: ListView.builder(
-                        padding: const EdgeInsets.all(
-                          UIConstants.defaultPadding,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: UIConstants.defaultPadding,
                         ),
                         itemCount: filteredTournaments.length,
                         itemBuilder: (context, index) {
@@ -172,7 +172,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
 
   Widget _buildTournamentCard(Tournament tournament) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
       elevation: 4.0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       child: InkWell(
@@ -182,32 +182,17 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
-                    child:
-                        tournament.imageUrl != null
-                            ? Image.network(
-                              correctUrlImage(tournament.imageUrl!),
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 100,
-                                  height: 100,
-                                  color: Colors.grey[300],
-                                  child: Icon(
-                                    Icons.sports_tennis,
-                                    size: 48,
-                                    color: Colors.grey[600],
-                                  ),
-                                );
-                              },
-                            )
-                            : Container(
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8.0),
+                child:
+                    tournament.imageUrl != null
+                        ? Image.network(
+                          correctUrlImage(tournament.imageUrl!),
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
                               width: 100,
                               height: 100,
                               color: Colors.grey[300],
@@ -216,61 +201,63 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                                 size: 48,
                                 color: Colors.grey[600],
                               ),
-                            ),
-                  ),
-                  const SizedBox(width: 16.0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tournament.name,
-                          style: const TextStyle(
-                            fontSize: 18.0,
-                            fontWeight: FontWeight.bold,
+                            );
+                          },
+                        )
+                        : Container(
+                          width: 100,
+                          height: 100,
+                          color: Colors.grey[300],
+                          child: Icon(
+                            Icons.sports_tennis,
+                            size: 48,
+                            color: Colors.grey[600],
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 8.0),
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_today, size: 16.0),
-                            const SizedBox(width: 4.0),
-                            Text(
-                              '${_formatDate(tournament.startDate)} - ${_formatDate(tournament.endDate)}',
-                              style: TextStyle(color: Colors.grey[700]),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4.0),
-                        if (tournament.city != null)
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on, size: 16.0),
-                              const SizedBox(width: 4.0),
-                              Text(
-                                tournament.city!,
-                                style: TextStyle(color: Colors.grey[700]),
-                              ),
-                            ],
-                          ),
-                        const SizedBox(height: 4.0),
-                        Row(
-                          children: [
-                            _buildTypeBadge(tournament.type),
-                            const SizedBox(width: 8.0),
-                            if (tournament.genderRestriction != null)
-                              ..._buildGenderBadges(
-                                tournament.genderRestriction!,
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
+              ),
+              const SizedBox(width: 16.0),
+              Text(
+                tournament.name,
+                style: const TextStyle(
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.bold,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8.0),
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 16.0),
+                  const SizedBox(width: 4.0),
+                  Text(
+                    '${_formatDate(tournament.startDate)} - ${_formatDate(tournament.endDate)}',
+                    style: TextStyle(color: Colors.grey[700]),
                   ),
                 ],
               ),
+              const SizedBox(height: 4.0),
+              if (tournament.city != null)
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 16.0),
+                    const SizedBox(width: 4.0),
+                    Text(
+                      tournament.city!,
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 4.0),
+              Row(
+                children: [
+                  _buildTypeBadge(tournament.type),
+                  const SizedBox(width: 8.0),
+                  if (tournament.genderRestriction != null)
+                    ..._buildGenderBadges(tournament.genderRestriction!),
+                ],
+              ),
+
               const SizedBox(height: 8.0),
               if (tournament.prize != null)
                 Row(
@@ -507,7 +494,10 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       });
 
       // Gọi API trực tiếp để xóa giải đấu
-      final response = await appDioClient.post('/tournament/delete_tournament', data: {'id': tournament.id});
+      final response = await appDioClient.post(
+        '/tournament/delete_tournament',
+        data: {'id': tournament.id},
+      );
 
       if (response.data['status'] != true) {
         throw Exception(response.data['message'] ?? 'Không thể xóa giải đấu');
