@@ -79,9 +79,14 @@ class TournamentBracketView extends StatelessWidget {
   List<List<TournamentMatch>> _organizeMatchesByRound() {
     // Lấy tất cả các trận đấu từ tất cả các vòng
     final allMatches = <TournamentMatch>[];
+    final existingRounds = <Round>[];
+
     if (tournament.rounds != null) {
+      existingRounds.addAll(tournament.rounds!);
       for (final round in tournament.rounds!) {
-        allMatches.addAll(round.matches ?? []);
+        if (round.matches != null) {
+          allMatches.addAll(round.matches!);
+        }
       }
     }
 
@@ -89,22 +94,47 @@ class TournamentBracketView extends StatelessWidget {
     final expectedTeamCount = tournament.numberOfTeam ?? 0;
     if (expectedTeamCount == 0) return [];
 
-    // Tính toán số vòng đấu
-    final roundCount = _calculateRoundCount();
-
-    // Tính số đội tối đa cho giải đấu (lũy thừa của 2)
-    final maxTeams = math.pow(2, roundCount).toInt();
+    // Tính toán số vòng đấu dự kiến
+    final expectedRoundCount = _calculateRoundCount();
 
     // Xây dựng bảng phân nhánh
     final List<List<TournamentMatch>> rounds = [];
+
+    // Nếu đã có rounds từ API, ưu tiên sử dụng
+    if (existingRounds.isNotEmpty) {
+      // Sắp xếp các rounds theo thứ tự (nếu có thứ tự)
+      // existingRounds.sort((a, b) => (a.order ?? 0).compareTo(b.order ?? 0));
+
+      // Xây dựng cấu trúc rounds từ dữ liệu API
+      for (final round in existingRounds) {
+        final roundMatches = round.matches ?? [];
+        // Sắp xếp matches nếu cần
+        if (roundMatches.isNotEmpty) {
+          rounds.add(roundMatches);
+        } else {
+          // Nếu round không có matches, tạo placeholder
+          rounds.add([]);
+        }
+      }
+
+      // Nếu số vòng thực tế ít hơn số vòng dự kiến, bổ sung thêm vòng placeholder
+      while (rounds.length < expectedRoundCount) {
+        rounds.add([]);
+      }
+    } else {
+      // Nếu không có rounds từ API, tạo cấu trúc rỗng
+      for (int i = 0; i < expectedRoundCount; i++) {
+        rounds.add([]);
+      }
+    }
 
     // Tạo danh sách đội dự kiến
     List<Team> allTeams = [];
 
     // Thêm các đội đã đăng ký (nếu có)
-    if (tournament.teams != null) {
-      allTeams.addAll(tournament.teams!);
-    }
+    // if (tournament.teams != null) {
+    //   allTeams.addAll(tournament.teams!);
+    // }
 
     // Thêm các đội placeholder cho đủ số lượng dự kiến
     while (allTeams.length < expectedTeamCount) {
@@ -117,6 +147,7 @@ class TournamentBracketView extends StatelessWidget {
     }
 
     // Thêm các đội placeholder cho đủ số lượng là lũy thừa của 2 (nếu cần)
+    final maxTeams = math.pow(2, expectedRoundCount).toInt();
     while (allTeams.length < maxTeams) {
       allTeams.add(
         Team(uniqueId: 'placeholder_team_${allTeams.length}', name: 'TBD'),
@@ -126,139 +157,150 @@ class TournamentBracketView extends StatelessWidget {
     // Xáo trộn đội theo hạt giống để tạo cặp đấu hợp lý
     allTeams = _seedTeams(allTeams);
 
-    // Xây dựng vòng đầu tiên
-    final firstRoundMatches = <TournamentMatch>[];
-    for (int i = 0; i < allTeams.length; i += 2) {
-      final team1 = allTeams[i];
-      final team2 = allTeams[i + 1];
-
-      // Tìm trận đấu thực tế giữa hai đội này nếu có
-      TournamentMatch? actualMatch = _findMatchBetweenTeams(
-        team1,
-        team2,
-        allMatches,
-      );
-
-      if (actualMatch != null) {
-        // Nếu đã có trận đấu thực tế
-        firstRoundMatches.add(actualMatch);
-      } else {
-        // Nếu chưa có trận đấu thực tế, tạo trận placeholder
-        final roundId =
-            tournament.rounds != null && tournament.rounds!.isNotEmpty
-                ? tournament.rounds!.first.id
-                : 0;
-
-        firstRoundMatches.add(
-          TournamentMatch(
-            id: i ~/ 2, // Sử dụng số nguyên trực tiếp thay vì int.parse()
-            round: Round(id: roundId), // Vòng đầu tiên
-            team1: team1,
-            team2: team2,
-
-            scheduledTime: DateTime.now().formatDate(),
-            matchStatus: MatchStatus.pending,
-          ),
-        );
-      }
+    // Điền vào vòng đầu tiên nếu chưa có đủ trận đấu
+    if (rounds[0].isEmpty) {
+      _fillFirstRound(rounds[0], allTeams);
+    } else if (rounds[0].length < maxTeams / 2) {
+      // Nếu vòng đầu tiên đã có trận đấu nhưng chưa đủ
+      _complementFirstRound(rounds[0], allTeams, maxTeams ~/ 2);
     }
-    rounds.add(firstRoundMatches);
 
-    // Xây dựng các vòng tiếp theo
-    for (int r = 1; r < roundCount; r++) {
-      final previousRound = rounds[r - 1];
-      final currentRoundMatches = <TournamentMatch>[];
-
-      for (int i = 0; i < previousRound.length; i += 2) {
-        if (i + 1 >= previousRound.length) {
-          // Trường hợp đặc biệt: số lẻ trận đấu ở vòng trước
-          continue;
-        }
-
-        final match1 = previousRound[i];
-        final match2 = previousRound[i + 1];
-
-        // Xác định đội tiến vào vòng tiếp theo
-        Team? team1;
-        if (match1.winner != null &&
-            match1.team1 != null &&
-            match1.team2 != null) {
-          team1 =
-              match1.winner?.id == match1.team1?.id
-                  ? match1.team1
-                  : match1.team2;
-        } else {
-          team1 =
-              match1.matchStatus == MatchStatus.completed ? null : match1.team1;
-        }
-
-        Team? team2;
-        if (match2.winner != null &&
-            match2.team1 != null &&
-            match2.team2 != null) {
-          team2 =
-              match2.winner?.id == match2.team1?.id
-                  ? match2.team1
-                  : match2.team2;
-        } else {
-          team2 =
-              match2.matchStatus == MatchStatus.completed ? null : match2.team1;
-        }
-
-        if (team1 == null || team1.name == 'TBD') {
-          team1 = Team(
-            uniqueId: 'winner_of_${match1.id}',
-            name: 'Đội thắng ' + _getMatchDisplayName(match1),
-          );
-        }
-
-        if (team2 == null || team2.name == 'TBD') {
-          team2 = Team(
-            uniqueId: 'winner_of_${match2.id}',
-            name: 'Đội thắng ' + _getMatchDisplayName(match2),
-          );
-        }
-
-        // Tìm trận đấu thực tế giữa hai đội này nếu có
-        TournamentMatch? actualMatch = _findMatchBetweenTeams(
-          team1,
-          team2,
-          allMatches,
-        );
-
-        if (actualMatch != null) {
-          // Nếu đã có trận đấu thực tế
-          currentRoundMatches.add(actualMatch);
-        } else {
-          // Nếu chưa có trận đấu thực tế, tạo trận placeholder
-          int roundId = 0;
-          if (tournament.rounds != null && tournament.rounds!.isNotEmpty) {
-            roundId =
-                r < tournament.rounds!.length
-                    ? tournament.rounds![r].id!
-                    : tournament.rounds!.last.id!;
-          }
-
-          currentRoundMatches.add(
-            TournamentMatch(
-              id:
-                  1000 +
-                  r * 100 +
-                  i ~/ 2, // Tạo ID duy nhất không sử dụng ký tự đặc biệt
-              round: Round(id: roundId),
-              team1: team1,
-              team2: team2,
-
-              scheduledTime: DateTime.now().formatDate(),
-              matchStatus: MatchStatus.pending,
-            ),
-          );
-        }
+    // Điền các vòng tiếp theo nếu chưa có trận đấu
+    for (int r = 1; r < expectedRoundCount; r++) {
+      if (rounds[r].isEmpty) {
+        _fillNextRound(rounds[r], rounds[r - 1], r);
       }
-      rounds.add(currentRoundMatches);
     }
 
     return rounds;
+  }
+
+  // Phương thức điền vào vòng đầu tiên
+  void _fillFirstRound(List<TournamentMatch> firstRound, List<Team> allTeams) {
+    final roundId =
+        tournament.rounds != null && tournament.rounds!.isNotEmpty
+            ? tournament.rounds!.first.id
+            : 0;
+
+    for (int i = 0; i < allTeams.length; i += 2) {
+      if (i + 1 >= allTeams.length) break;
+
+      final team1 = allTeams[i];
+      final team2 = allTeams[i + 1];
+
+      firstRound.add(
+        TournamentMatch(
+          id: i ~/ 2,
+          round: Round(id: roundId),
+          team1: team1,
+          team2: team2,
+          scheduledTime: "Unknown",
+          matchStatus: MatchStatus.pending,
+        ),
+      );
+    }
+  }
+
+  // Phương thức bổ sung các trận đấu còn thiếu trong vòng đầu tiên
+  void _complementFirstRound(
+    List<TournamentMatch> firstRound,
+    List<Team> allTeams,
+    int expectedMatchCount,
+  ) {
+    // Tạo set chứa id của các đội đã có trong firstRound
+    final existingTeamIds = <String>{};
+    for (var match in firstRound) {
+      if (match.team1?.id != null)
+        existingTeamIds.add(match.team1!.id.toString());
+      if (match.team2?.id != null)
+        existingTeamIds.add(match.team2!.id.toString());
+    }
+
+    // Lọc ra các đội chưa có trong firstRound
+    final remainingTeams =
+        allTeams
+            .where(
+              (team) =>
+                  team.id == null ||
+                  !existingTeamIds.contains(team.id.toString()),
+            )
+            .toList();
+
+    // Tạo các trận đấu bổ sung
+    final roundId =
+        tournament.rounds != null && tournament.rounds!.isNotEmpty
+            ? tournament.rounds!.first.id
+            : 0;
+
+    for (int i = 0; i < remainingTeams.length; i += 2) {
+      if (i + 1 >= remainingTeams.length) break;
+      if (firstRound.length >= expectedMatchCount) break;
+
+      final team1 = remainingTeams[i];
+      final team2 = remainingTeams[i + 1];
+
+      firstRound.add(
+        TournamentMatch(
+          id: firstRound.length + (i ~/ 2),
+          round: Round(id: roundId),
+          team1: team1,
+          team2: team2,
+          scheduledTime: "Unknown",
+          matchStatus: MatchStatus.pending,
+        ),
+      );
+    }
+  }
+
+  // Phương thức điền vào vòng tiếp theo
+  void _fillNextRound(
+    List<TournamentMatch> currentRound,
+    List<TournamentMatch> previousRound,
+    int roundIndex,
+  ) {
+    final roundId =
+        tournament.rounds != null && roundIndex < tournament.rounds!.length
+            ? tournament.rounds![roundIndex].id
+            : 0;
+
+    for (int i = 0; i < previousRound.length; i += 2) {
+      if (i + 1 >= previousRound.length) break;
+
+      final match1 = previousRound[i];
+      final match2 = previousRound[i + 1];
+
+      // Xác định đội tiến vào vòng tiếp theo
+      Team? team1;
+      if (match1.winner != null) {
+        team1 = match1.winner;
+      } else {
+        team1 = Team(
+          uniqueId: 'winner_of_${match1.id}',
+          name: 'Đội thắng ' + _getMatchDisplayName(match1),
+        );
+      }
+
+      Team? team2;
+      if (match2.winner != null) {
+        team2 = match2.winner;
+      } else {
+        team2 = Team(
+          uniqueId: 'winner_of_${match2.id}',
+          name: 'Đội thắng ' + _getMatchDisplayName(match2),
+        );
+      }
+
+      currentRound.add(
+        TournamentMatch(
+          id: 1000 + roundIndex * 100 + i ~/ 2,
+          round: Round(id: roundId),
+          team1: team1,
+          team2: team2,
+          scheduledTime: "Unknown",
+          matchStatus: MatchStatus.pending,
+        ),
+      );
+    }
   }
 
   // Tìm trận đấu thực tế giữa hai đội

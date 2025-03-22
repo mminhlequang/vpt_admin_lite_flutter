@@ -9,14 +9,12 @@ import 'package:intl/intl.dart';
 class TournamentInfoTab extends StatelessWidget {
   final Tournament tournament;
   final Function() onEdit;
-  final Function() onExportSchedule;
   final VoidCallback fetchTournament;
 
   const TournamentInfoTab({
     super.key,
     required this.tournament,
     required this.onEdit,
-    required this.onExportSchedule,
     required this.fetchTournament,
   });
 
@@ -37,8 +35,6 @@ class TournamentInfoTab extends StatelessWidget {
             const SizedBox(height: 16),
           ],
           _buildRoundsTab(context),
-          const SizedBox(height: 16),
-          _buildActions(),
           const SizedBox(height: 24),
         ],
       ),
@@ -339,25 +335,6 @@ class TournamentInfoTab extends StatelessWidget {
     );
   }
 
-  Widget _buildActions() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        OutlinedButton.icon(
-          onPressed: onExportSchedule,
-          icon: const Icon(Icons.calendar_today),
-          label: const Text('Xuất lịch'),
-        ),
-        if (tournament.status == TournamentStatus.preparing ||
-            tournament.status == TournamentStatus.ongoing)
-          ElevatedButton.icon(
-            onPressed: onEdit,
-            icon: const Icon(Icons.edit),
-            label: const Text('Chỉnh sửa'),
-          ),
-      ],
-    );
-  }
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(

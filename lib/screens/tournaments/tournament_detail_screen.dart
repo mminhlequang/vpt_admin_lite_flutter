@@ -4,10 +4,10 @@ import '../../models/tournament.dart';
 import '../../utils/constants.dart';
 import '../../widgets/tournament/tournament_info_tab.dart';
 import '../../widgets/tournament/tournament_matches_tab.dart';
+import 'matches_screen.dart';
 import 'packages_screen.dart';
 import 'teams_screen.dart';
 import 'tournament_edit_screen.dart';
-import 'tournament_schedule_edit_screen.dart';
 import 'rounds_screen.dart';
 
 class TournamentDetailScreen extends StatefulWidget {
@@ -80,51 +80,7 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
       }
     });
   }
-
-  // Xuất lịch thi đấu
-  void _exportSchedule() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chức năng xuất lịch sẽ được triển khai sau'),
-      ),
-    );
-  }
-
-  // Chỉnh sửa lịch thi đấu
-  Future<void> _editSchedule() async {
-    // final result = await Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder:
-    //         (context) => TournamentScheduleEditScreen(
-    //           tournament: _tournament,
-    //           onSave: (updatedTournament) {
-    //             setState(() {
-    //               _tournament = updatedTournament;
-    //             });
-    //             ScaffoldMessenger.of(context).showSnackBar(
-    //               const SnackBar(content: Text('Đã cập nhật lịch thi đấu')),
-    //             );
-    //           },
-    //         ),
-    //   ),
-    // );
-
-    // if (result != null) {
-    //   setState(() {
-    //     _tournament = result;
-    //   });
-    // }
-  }
-
-  // Cập nhật kết quả trận đấu
-  void _updateMatchResults() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Chức năng cập nhật kết quả sẽ được triển khai sau'),
-      ),
-    );
-  }
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -162,15 +118,21 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen>
                   TournamentInfoTab(
                     tournament: _tournament,
                     onEdit: _editTournament,
-                    onExportSchedule: _exportSchedule,
                     fetchTournament: _fetchFetchInfos,
                   ),
 
                   // Sử dụng widget TournamentMatchesTab cho tab trận đấu
                   TournamentMatchesTab(
                     tournament: _tournament,
-                    onUpdateResults: _updateMatchResults,
-                    onEditSchedule: _editSchedule,
+                    onUpdateResults: (match) {
+                      showUpdateMatchDialog(
+                        match: match,
+                        context: context,
+                        onLoading:
+                            (value) => setState(() => _isLoading = value),
+                        onUpdate: () => _fetchFetchInfos(),
+                      );
+                    },
                     fetchTournament: _fetchFetchInfos,
                   ),
                   PackagesScreen(

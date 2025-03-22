@@ -24,8 +24,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
   final TextEditingController _stadiumController = TextEditingController();
   final TextEditingController _scheduledTimeController =
       TextEditingController();
-  final TextEditingController _team1ScoreController = TextEditingController();
-  final TextEditingController _team2ScoreController = TextEditingController();
 
   List<match_model.TournamentMatch> _matches = [];
   List<Team> _availableTeams = [];
@@ -35,7 +33,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
   DateTime? _selectedScheduledTime;
   Team? _selectedTeam1;
   Team? _selectedTeam2;
-  match_model.MatchStatus _selectedStatus = match_model.MatchStatus.pending;
 
   final Map<match_model.MatchStatus, Color> statusColors = {
     match_model.MatchStatus.pending: Colors.grey,
@@ -63,8 +60,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
   void dispose() {
     _stadiumController.dispose();
     _scheduledTimeController.dispose();
-    _team1ScoreController.dispose();
-    _team2ScoreController.dispose();
     super.dispose();
   }
 
@@ -366,210 +361,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
     }
   }
 
-  Future<void> _showUpdateMatchDialog(match_model.TournamentMatch match) async {
-    _team1ScoreController.text = match.team1Score?.toString() ?? '';
-    _team2ScoreController.text = match.team2Score?.toString() ?? '';
-    _selectedStatus = match.matchStatus!;
-
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Cập nhật kết quả trận đấu'),
-          content: SingleChildScrollView(
-            child: StatefulBuilder(
-              builder: (BuildContext context, StateSetter setState) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    if (match.team1 != null && match.team2 != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                match.team1!.name ?? '',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const Text(
-                              'VS',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Expanded(
-                              child: Text(
-                                match.team2!.name ?? '',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _team1ScoreController,
-                            decoration: const InputDecoration(
-                              labelText: 'Điểm đội 1',
-                              hintText: 'Nhập điểm',
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextField(
-                            controller: _team2ScoreController,
-                            decoration: const InputDecoration(
-                              labelText: 'Điểm đội 2',
-                              hintText: 'Nhập điểm',
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<match_model.MatchStatus>(
-                      decoration: const InputDecoration(
-                        labelText: 'Trạng thái trận đấu',
-                      ),
-                      value: _selectedStatus,
-                      items:
-                          match_model.MatchStatus.values.map((status) {
-                            return DropdownMenuItem<match_model.MatchStatus>(
-                              value: status,
-                              child: Text(statusTexts[status]!),
-                            );
-                          }).toList(),
-                      onChanged: (match_model.MatchStatus? newValue) {
-                        setState(() {
-                          _selectedStatus = newValue!;
-                        });
-                      },
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Hủy'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Cập nhật'),
-              onPressed: () {
-                if (_selectedStatus == match_model.MatchStatus.completed) {
-                  if (_team1ScoreController.text.isEmpty ||
-                      _team2ScoreController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Vui lòng nhập đầy đủ điểm số cho cả hai đội',
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                }
-                Navigator.of(context).pop();
-                _updateMatch(match);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _updateMatch(match_model.TournamentMatch match) async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    int? team1Score =
-        _team1ScoreController.text.isNotEmpty
-            ? int.tryParse(_team1ScoreController.text)
-            : null;
-    int? team2Score =
-        _team2ScoreController.text.isNotEmpty
-            ? int.tryParse(_team2ScoreController.text)
-            : null;
-
-    int? winnerId;
-    if (_selectedStatus == match_model.MatchStatus.completed &&
-        team1Score != null &&
-        team2Score != null) {
-      if (team1Score > team2Score) {
-        winnerId = match.team1!.id;
-      } else if (team2Score > team1Score) {
-        winnerId = match.team2!.id;
-      }
-      // Trường hợp hoà, winnerId = null
-    }
-
-    try {
-      final response = await appDioClient.put(
-        '/tournament/update_match',
-        data: {
-          'id': match.id,
-          'match_status': _selectedStatus.toString().split('.').last,
-          'team1_score': team1Score,
-          'team2_score': team2Score,
-          'winner_id': winnerId,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data['status']) {
-          _loadMatches();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Cập nhật trận đấu thành công')),
-          );
-        } else {
-          setState(() {
-            _isLoading = false;
-            _errorMessage = data['message'] ?? 'Không thể cập nhật trận đấu';
-          });
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(_errorMessage)));
-        }
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Lỗi kết nối: ${response.statusCode}';
-        });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(_errorMessage)));
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Lỗi: ${e.toString()}';
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_errorMessage)));
-    }
-  }
-
   Future<void> _showDeleteMatchDialog(match_model.TournamentMatch match) async {
     return showDialog<void>(
       context: context,
@@ -610,7 +401,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     });
 
     try {
-      final response = await appDioClient.delete(
+      final response = await appDioClient.post(
         '/tournament/delete_match',
         data: {'id': matchId},
       );
@@ -782,7 +573,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
                     const SizedBox(width: 4),
                     Text(
-                       match.scheduledTime ?? '' ,
+                      match.scheduledTime ?? '',
                       style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ],
@@ -925,7 +716,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
-                  onPressed: () => _showUpdateMatchDialog(match),
+                  onPressed: () => showUpdateMatchDialog(
+                    match: match,
+                    context: context,
+                    onLoading: (value) => setState(() => _isLoading = value),
+                    onUpdate: () => _loadMatches(),
+                  ),
                   icon: const Icon(Icons.score, size: 18),
                   label: const Text('Cập nhật kết quả'),
                 ),
@@ -1053,4 +849,215 @@ class _MatchesScreenState extends State<MatchesScreen> {
               : null,
     );
   }
+}
+
+Future<void> showUpdateMatchDialog({
+  required match_model.TournamentMatch match,
+  required BuildContext context,
+  required ValueChanged<bool> onLoading,
+  required VoidCallback onUpdate,
+}) async {
+  final Map<match_model.MatchStatus, String> statusTexts = {
+    match_model.MatchStatus.pending: 'Chưa diễn ra',
+    match_model.MatchStatus.ongoing: 'Đang diễn ra',
+    match_model.MatchStatus.completed: 'Đã kết thúc',
+    match_model.MatchStatus.cancelled: 'Đã hủy',
+  };
+
+  final TextEditingController _team1ScoreController = TextEditingController();
+  final TextEditingController _team2ScoreController = TextEditingController();
+
+  match_model.MatchStatus _selectedStatus = match_model.MatchStatus.pending;
+
+  Future<void> _updateMatch(match_model.TournamentMatch match) async {
+    onLoading(true);
+
+    int? team1Score =
+        _team1ScoreController.text.isNotEmpty
+            ? int.tryParse(_team1ScoreController.text)
+            : null;
+    int? team2Score =
+        _team2ScoreController.text.isNotEmpty
+            ? int.tryParse(_team2ScoreController.text)
+            : null;
+
+    int? winnerId;
+    if (_selectedStatus == match_model.MatchStatus.completed &&
+        team1Score != null &&
+        team2Score != null) {
+      if (team1Score > team2Score) {
+        winnerId = match.team1!.id;
+      } else if (team2Score > team1Score) {
+        winnerId = match.team2!.id;
+      }
+      // Trường hợp hoà, winnerId = null
+    }
+
+    try {
+      final response = await appDioClient.post(
+        '/tournament/update_match',
+        data: {
+          'id': match.id,
+          'match_status': _selectedStatus.toString().split('.').last,
+          'team1_score': team1Score,
+          'team2_score': team2Score
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['status']) {
+          onUpdate();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cập nhật trận đấu thành công')),
+          );
+        } else {
+          onLoading(false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Không thể cập nhật trận đấu'),
+            ),
+          );
+        }
+      } else {
+        onLoading(false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi kết nối: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      onLoading(false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi: ${e.toString()}')));
+    }
+  }
+
+  _team1ScoreController.text = match.team1Score?.toString() ?? '';
+  _team2ScoreController.text = match.team2Score?.toString() ?? '';
+  _selectedStatus = match.matchStatus!;
+
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Cập nhật kết quả trận đấu'),
+        content: SingleChildScrollView(
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  if (match.team1 != null && match.team2 != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              match.team1!.name ?? '',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const Text(
+                            'VS',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Expanded(
+                            child: Text(
+                              match.team2!.name ?? '',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _team1ScoreController,
+                          decoration: const InputDecoration(
+                            labelText: 'Điểm đội 1',
+                            hintText: 'Nhập điểm',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: _team2ScoreController,
+                          decoration: const InputDecoration(
+                            labelText: 'Điểm đội 2',
+                            hintText: 'Nhập điểm',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<match_model.MatchStatus>(
+                    decoration: const InputDecoration(
+                      labelText: 'Trạng thái trận đấu',
+                    ),
+                    value: _selectedStatus,
+                    items:
+                        match_model.MatchStatus.values.map((status) {
+                          return DropdownMenuItem<match_model.MatchStatus>(
+                            value: status,
+                            child: Text(statusTexts[status]!),
+                          );
+                        }).toList(),
+                    onChanged: (match_model.MatchStatus? newValue) {
+                      setState(() {
+                        _selectedStatus = newValue!;
+                      });
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('Hủy'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: const Text('Cập nhật'),
+            onPressed: () {
+              if (_selectedStatus == match_model.MatchStatus.completed) {
+                if (_team1ScoreController.text.isEmpty ||
+                    _team2ScoreController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Vui lòng nhập đầy đủ điểm số cho cả hai đội',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+              }
+              Navigator.of(context).pop();
+              _updateMatch(match);
+            },
+          ),
+        ],
+      );
+    },
+  );
 }

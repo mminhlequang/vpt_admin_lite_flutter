@@ -24,19 +24,16 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _cityController = TextEditingController();
-  final _surfaceController = TextEditingController();
+  String? _surface;
   final _prizeController = TextEditingController();
   final _focusNode = FocusNode();
   final _scrollController = ScrollController();
 
   DateTime _startDate = DateTime.now().add(const Duration(days: 7));
   DateTime _endDate = DateTime.now().add(const Duration(days: 14));
-  int _tournamentType = 1; // 1: singles, 2: doubles
-  List<String> _genderRestriction = ['male', 'female', 'mixed'];
   int _numberOfTeams = 8;
   File? _avatarFile;
-  int _selectedCategoryId = 1;
-  int _packageId = 1;
+  Category? _selectedCategory;
 
   List<Category> _categories = [];
   bool _isLoadingCategories = false;
@@ -54,7 +51,6 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _cityController.dispose();
-    _surfaceController.dispose();
     _prizeController.dispose();
     _focusNode.dispose();
     _scrollController.dispose();
@@ -80,7 +76,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
           setState(() {
             _categories = categories;
             if (categories.isNotEmpty) {
-              _selectedCategoryId = categories.first.id;
+              _selectedCategory = categories.first;
             }
             _isLoadingCategories = false;
           });
@@ -98,10 +94,6 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
         SnackBar(content: Text('Không thể tải danh mục: ${e.toString()}')),
       );
     }
-  }
-
-  void _navigateBack() {
-    Navigator.pop(context);
   }
 
   Future<void> _pickImage() async {
@@ -173,14 +165,11 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
         'start_date': _startDate.toIso8601String().split('T')[0],
         'end_date': _endDate.toIso8601String().split('T')[0],
         'city': _cityController.text,
-        'surface': _surfaceController.text,
-        'gender_restriction': _genderRestriction,
+        'surface': _surface,
         'number_of_team': _numberOfTeams,
         'prize': prize,
-        'package_id': _packageId,
         'content': _descriptionController.text,
-        'type': _tournamentType,
-        'category_id': _selectedCategoryId,
+        'category_id': _selectedCategory?.id,
         'status': TournamentStatus.preparing.name,
       });
 
@@ -287,342 +276,348 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
   }
 
   Widget _buildBasicInfoSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Thông tin cơ bản',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _nameController,
+          decoration: const InputDecoration(
+            labelText: 'Tên giải đấu',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.title),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Vui lòng nhập tên giải đấu';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        Row(
           children: [
-            const Text(
-              'Thông tin cơ bản',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Tên giải đấu',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.title),
+            Expanded(
+              child: TextFormField(
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Ngày bắt đầu',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.calendar_today),
+                ),
+                controller: TextEditingController(
+                  text: _formatDate(_startDate),
+                ),
+                onTap: () => _selectDate(context, true),
               ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập tên giải đấu';
-                }
-                return null;
-              },
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Ngày bắt đầu',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.calendar_today),
-                    ),
-                    controller: TextEditingController(
-                      text: _formatDate(_startDate),
-                    ),
-                    onTap: () => _selectDate(context, true),
-                  ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: TextFormField(
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Ngày kết thúc',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.calendar_today),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Ngày kết thúc',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.calendar_today),
-                    ),
-                    controller: TextEditingController(
-                      text: _formatDate(_endDate),
-                    ),
-                    onTap: () => _selectDate(context, false),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: _pickImage,
-                    child: Container(
-                      height: 150,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child:
-                          _avatarFile != null
-                              ? ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: Image.file(
-                                  _avatarFile!,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                              : _pickedBytes != null && kIsWeb
-                              ? ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: Image.memory(
-                                  _pickedBytes!,
-                                  fit: BoxFit.cover,
-                                ),
-                              )
-                              : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Icon(Icons.add_photo_alternate, size: 50),
-                                  SizedBox(height: 8),
-                                  Text('Chọn ảnh giải đấu'),
-                                ],
-                              ),
-                    ),
-                  ),
-                ),
-              ],
+                controller: TextEditingController(text: _formatDate(_endDate)),
+                onTap: () => _selectDate(context, false),
+              ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: _pickImage,
+                child: Container(
+                  height: 150,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child:
+                      _avatarFile != null
+                          ? ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: Image.file(_avatarFile!, fit: BoxFit.cover),
+                          )
+                          : _pickedBytes != null && kIsWeb
+                          ? ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: Image.memory(
+                              _pickedBytes!,
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                          : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.add_photo_alternate, size: 50),
+                              SizedBox(height: 8),
+                              Text('Chọn ảnh giải đấu'),
+                            ],
+                          ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildLocationSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Địa điểm',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _cityController,
-              decoration: const InputDecoration(
-                labelText: 'Thành phố',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_city),
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập thành phố';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _surfaceController,
-              decoration: const InputDecoration(
-                labelText: 'Bề mặt sân',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.sports_tennis),
-                hintText: 'Ví dụ: hard, clay, grass',
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập bề mặt sân';
-                }
-                return null;
-              },
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Địa điểm',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-      ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _cityController,
+          decoration: const InputDecoration(
+            labelText: 'Thành phố',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.location_city),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Vui lòng nhập thành phố';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<String>(
+          value: _surface,
+          decoration: const InputDecoration(
+            labelText: 'Bề mặt sân',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.sports_tennis),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'hard', child: Text('Sân cứng (Hard)')),
+            DropdownMenuItem(value: 'clay', child: Text('Sân đất nện (Clay)')),
+            DropdownMenuItem(value: 'grass', child: Text('Sân cỏ (Grass)')),
+            DropdownMenuItem(value: 'carpet', child: Text('Sân thảm (Carpet)')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _surface = value;
+              });
+            }
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Vui lòng chọn bề mặt sân';
+            }
+            return null;
+          },
+        ),
+      ],
     );
   }
 
   Widget _buildConfigurationSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Cấu hình giải đấu',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              decoration: const InputDecoration(
-                labelText: 'Danh mục',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.category),
-              ),
-              value: _selectedCategoryId,
-              items:
-                  _categories.map((category) {
-                    return DropdownMenuItem<int>(
-                      value: category.id,
-                      child: Text(category.name),
-                    );
-                  }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedCategoryId = value;
-                    // Cập nhật loại giải đấu dựa trên danh mục
-                    final selectedCategory = _categories.firstWhere(
-                      (c) => c.id == value,
-                      orElse:
-                          () => Category(
-                            id: 1,
-                            name: '',
-                            numberOfPlayer: 1,
-                            sex: 0,
-                          ),
-                    );
-                    _tournamentType = selectedCategory.numberOfPlayer;
-                  });
-                }
-              },
-              validator: (value) {
-                if (value == null) {
-                  return 'Vui lòng chọn danh mục';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _prizeController,
-              decoration: const InputDecoration(
-                labelText: 'Tiền thưởng (VNĐ)',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.monetization_on),
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Vui lòng nhập tiền thưởng';
-                }
-                try {
-                  final prize = double.parse(value);
-                  if (prize < 0) {
-                    return 'Tiền thưởng không được âm';
-                  }
-                } catch (e) {
-                  return 'Vui lòng nhập số hợp lệ';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              value: _numberOfTeams,
-              decoration: const InputDecoration(
-                labelText: 'Số đội tham gia',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.people),
-              ),
-              items: [4, 8, 16, 32, 64, 128].map((int value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Cấu hình giải đấu',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<int>(
+          decoration: const InputDecoration(
+            labelText: 'Danh mục',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.category),
+          ),
+          value: _selectedCategory?.id,
+          items:
+              _categories.map((category) {
+                return DropdownMenuItem<int>(
+                  value: category.id,
+                  child: Text(category.name),
+                );
+              }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _selectedCategory = _categories.firstWhere(
+                  (c) => c.id == value,
+                  orElse:
+                      () =>
+                          Category(id: 1, name: '', numberOfPlayer: 1, sex: 0),
+                );
+              });
+            }
+          },
+          validator: (value) {
+            if (value == null) {
+              return 'Vui lòng chọn danh mục';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _prizeController,
+          decoration: const InputDecoration(
+            labelText: 'Tiền thưởng (VNĐ)',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.monetization_on),
+          ),
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Vui lòng nhập tiền thưởng';
+            }
+            try {
+              final prize = double.parse(value);
+              if (prize < 0) {
+                return 'Tiền thưởng không được âm';
+              }
+            } catch (e) {
+              return 'Vui lòng nhập số hợp lệ';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<int>(
+          value: _numberOfTeams,
+          decoration: const InputDecoration(
+            labelText: 'Số đội tham gia',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.people),
+          ),
+          items:
+              [4, 8, 16, 32, 64, 128].map((int value) {
                 return DropdownMenuItem<int>(
                   value: value,
                   child: Text('$value đội'),
                 );
               }).toList(),
-              validator: (value) {
-                if (value == null) {
-                  return 'Vui lòng chọn số đội tham gia';
-                }
-                return null;
-              },
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _numberOfTeams = value;
-                  });
-                }
-              },
-            ),
-            // const SizedBox(height: 16),
-            // const Text('Giới tính cho phép tham gia:'),
-            // Wrap(
-            //   spacing: 8.0,
-            //   children: [
-            //     FilterChip(
-            //       label: const Text('Nam'),
-            //       selected: _genderRestriction.contains('male'),
-            //       onSelected: (selected) {
-            //         setState(() {
-            //           if (selected) {
-            //             _genderRestriction.add('male');
-            //           } else {
-            //             _genderRestriction.remove('male');
-            //           }
-            //         });
-            //       },
-            //     ),
-            //     FilterChip(
-            //       label: const Text('Nữ'),
-            //       selected: _genderRestriction.contains('female'),
-            //       onSelected: (selected) {
-            //         setState(() {
-            //           if (selected) {
-            //             _genderRestriction.add('female');
-            //           } else {
-            //             _genderRestriction.remove('female');
-            //           }
-            //         });
-            //       },
-            //     ),
-            //     FilterChip(
-            //       label: const Text('Hỗn hợp'),
-            //       selected: _genderRestriction.contains('mixed'),
-            //       onSelected: (selected) {
-            //         setState(() {
-            //           if (selected) {
-            //             _genderRestriction.add('mixed');
-            //           } else {
-            //             _genderRestriction.remove('mixed');
-            //           }
-            //         });
-            //       },
-            //     ),
-            //   ],
-            // ),
-          ],
+          validator: (value) {
+            if (value == null) {
+              return 'Vui lòng chọn số đội tham gia';
+            }
+            return null;
+          },
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _numberOfTeams = value;
+              });
+            }
+          },
         ),
-      ),
+        // const SizedBox(height: 16),
+        // const Text('Giới tính cho phép tham gia:'),
+        // Wrap(
+        //   spacing: 8.0,
+        //   children: [
+        //     FilterChip(
+        //       label: const Text('Nam'),
+        //       selected: _genderRestriction.contains('male'),
+        //       onSelected: (selected) {
+        //         setState(() {
+        //           if (selected) {
+        //             _genderRestriction.add('male');
+        //           } else {
+        //             _genderRestriction.remove('male');
+        //           }
+        //         });
+        //       },
+        //     ),
+        //     FilterChip(
+        //       label: const Text('Nữ'),
+        //       selected: _genderRestriction.contains('female'),
+        //       onSelected: (selected) {
+        //         setState(() {
+        //           if (selected) {
+        //             _genderRestriction.add('female');
+        //           } else {
+        //             _genderRestriction.remove('female');
+        //           }
+        //         });
+        //       },
+        //     ),
+        //     FilterChip(
+        //       label: const Text('Hỗn hợp'),
+        //       selected: _genderRestriction.contains('mixed'),
+        //       onSelected: (selected) {
+        //         setState(() {
+        //           if (selected) {
+        //             _genderRestriction.add('mixed');
+        //           } else {
+        //             _genderRestriction.remove('mixed');
+        //           }
+        //         });
+        //       },
+        //     ),
+        //   ],
+        // ),
+      ],
     );
   }
 
   Widget _buildDescriptionSection() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Mô tả giải đấu',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Mô tả chi tiết',
-                border: OutlineInputBorder(),
-                alignLabelWithHint: true,
-              ),
-              maxLines: 10,
-              minLines: 5,
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Mô tả giải đấu',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-      ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _descriptionController,
+          decoration: const InputDecoration(
+            labelText: 'Mô tả chi tiết',
+            border: OutlineInputBorder(),
+            alignLabelWithHint: true,
+          ),
+          maxLines: 16,
+          minLines: 8,
+        ),
+
+        // Container(
+        //   height: 480,
+        //   decoration: BoxDecoration(
+        //     border: Border.all(color: Colors.grey),
+        //     borderRadius: BorderRadius.circular(4),
+        //   ),
+        //   child: Column(
+        //     children: [
+        //       QuillSimpleToolbar(
+        //         controller: _descriptionController,
+        //         config: const QuillSimpleToolbarConfig(toolbarSize: 20),
+        //       ),
+        //       Expanded(
+        //         child: Padding(
+        //           padding: const EdgeInsets.symmetric(horizontal: 16),
+        //           child: QuillEditor.basic(
+        //             controller: _descriptionController,
+        //             config: const QuillEditorConfig(),
+        //           ),
+        //         ),
+        //       ),
+        //     ],
+        //   ),
+        // ),
+      ],
     );
   }
 }
