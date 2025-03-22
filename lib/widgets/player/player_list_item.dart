@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:internal_core/internal_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vpt_admin_lite_flutter/screens/players/player_detail_screen.dart';
 import '../../models/player.dart';
 
-String correctUrlImage(String? url) {
-  return (url ?? "").startsWith("http") == true
-      ? url!
-      : "https://familyworld.xyz/$url";
-}
+ 
 
 class PlayerListItem extends StatelessWidget {
   final Player player;
@@ -139,10 +136,12 @@ class PlayerListItem extends StatelessWidget {
 
   Widget _buildAvatarCircle() {
     if (player.avatar != null) {
-      return CircleAvatar(
-        radius: 28,
-        backgroundImage: NetworkImage(correctUrlImage(player.avatar)),
-        backgroundColor: Colors.grey[200],
+      return WidgetAppImage(
+        imageUrl: player.avatar,
+        width: 56,
+        height: 56,
+        radius: 28, 
+        fit: BoxFit.cover,
       );
     }
     return CircleAvatar(

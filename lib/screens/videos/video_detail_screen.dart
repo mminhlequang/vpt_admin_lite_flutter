@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:internal_core/internal_core.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
@@ -89,7 +90,7 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
             image:
                 _video.avatar != null && _video.avatar!.isNotEmpty
                     ? DecorationImage(
-                      image: NetworkImage(correctUrlImage(_video.avatar)),
+                      image: NetworkImage(appImageCorrectUrl(_video.avatar!)),
                       fit: BoxFit.cover,
                     )
                     : null,

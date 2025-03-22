@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:internal_core/internal_core.dart';
-import 'package:internal_network/network_resources/resources.dart';
 import 'package:vpt_admin_lite_flutter/config/routes.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
-import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../models/tournament.dart';
 import '../../utils/constants.dart';
 import '../../widgets/loading_indicator.dart';
 import 'create_tournament_screen.dart';
 import 'tournament_edit_screen.dart';
-import 'tournament_manager_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
 
@@ -238,10 +235,41 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
               const SizedBox(height: 4.0),
               Row(
                 children: [
-                  _buildTypeBadge(tournament.category?.numberOfPlayer == 1),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6.0,
+                      vertical: 2.0,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.greenAccent.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4.0),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.type_specimen,
+                          size: 14.0,
+                          color: Colors.greenAccent,
+                        ),
+                        const SizedBox(width: 2.0),
+                        Text(
+                          tournament.category?.numberOfPlayer == 1
+                              ? 'Đấu đơn'
+                              : 'Đấu đôi',
+                          style: TextStyle(
+                            color: Colors.greenAccent,
+                            fontSize: 12.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(width: 8.0),
                   if (tournament.genderRestriction != null)
                     ..._buildGenderBadges(tournament.category?.sex ?? 2),
+                  Spacer(),
+                  _buildStatusBadge(tournament.status!),
                 ],
               ),
 
@@ -255,38 +283,34 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
                       size: 18.0,
                     ),
                     const SizedBox(width: 4.0),
-                    Text(
-                      'Giải thưởng: ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(tournament.prize)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
+                    Expanded(
+                      child: Text(
+                        'Giải thưởng: ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(tournament.prize)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
                       ),
                     ),
+                    if (_isAdmin)
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed:
+                                () => _navigateToTournamentEdit(tournament),
+                            tooltip: 'Chỉnh sửa giải đấu',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed:
+                                () => _showDeleteConfirmation(tournament),
+                            tooltip: 'Xóa giải đấu',
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-              const SizedBox(height: 8.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // _buildStatusBadge(tournament.status),
-                  if (_isAdmin)
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed:
-                              () => _navigateToTournamentEdit(tournament),
-                          tooltip: 'Chỉnh sửa giải đấu',
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _showDeleteConfirmation(tournament),
-                          tooltip: 'Xóa giải đấu',
-                        ),
-                      ],
-                    ),
-                ],
-              ),
             ],
           ),
         ),
@@ -325,19 +349,6 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
         border: Border.all(color: color),
       ),
       child: Text(text, style: TextStyle(color: color, fontSize: 12.0)),
-    );
-  }
-
-  Widget _buildTypeBadge(bool isSingle) {
-    return Chip(
-      label: Text(isSingle ? 'Đấu đơn' : 'Đấu đôi'),
-      backgroundColor: isSingle ? Colors.purple[50] : Colors.indigo[50],
-      padding: EdgeInsets.zero,
-      labelStyle: TextStyle(
-        color: isSingle ? Colors.purple[700] : Colors.indigo[700],
-        fontSize: 12,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 
@@ -410,11 +421,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       default:
         return 'Nam/Nữ';
     }
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
+  } 
 
   void _navigateToCreateTournament() {
     Navigator.push(
@@ -446,15 +453,6 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
         _loadTournaments();
       }
     });
-  }
-
-  void _navigateToTournamentManager(Tournament tournament) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TournamentManagerScreen(tournament: tournament),
-      ),
-    ).then((_) => _loadTournaments());
   }
 
   void _showDeleteConfirmation(Tournament tournament) {

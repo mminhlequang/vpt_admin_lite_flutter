@@ -13,8 +13,7 @@ import '../../widgets/loading_indicator.dart';
 class TournamentEditScreen extends StatefulWidget {
   final Tournament tournament;
 
-  const TournamentEditScreen({Key? key, required this.tournament})
-    : super(key: key);
+  const TournamentEditScreen({super.key, required this.tournament});
 
   @override
   State<TournamentEditScreen> createState() => _TournamentEditScreenState();
@@ -33,7 +32,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
   late int _numberOfTeams;
   late int _selectedCategoryId;
   late int _packageId;
-
+  late TournamentStatus _status;
   File? _avatarFile;
   String? _currentImageUrl;
   bool _isLoading = false;
@@ -70,6 +69,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     _selectedCategoryId = tournament.category?.id ?? 1;
     _packageId = tournament.packages?.first.id ?? 1;
     _currentImageUrl = tournament.avatar;
+    _status = tournament.status ?? TournamentStatus.preparing;
   }
 
   @override
@@ -192,6 +192,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
         'package_id': _packageId,
         'content': _descriptionController.text,
         'category_id': _selectedCategoryId,
+        'status': _status.name,
       });
 
       if (_avatarFile != null) {
@@ -393,19 +394,11 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                         : _currentImageUrl != null
                         ? ClipRRect(
                           borderRadius: BorderRadius.circular(4),
-                          child: Image.network(
-                            _currentImageUrl!,
+                          child: WidgetAppImage(
+                            imageUrl: _currentImageUrl!,
                             fit: BoxFit.cover,
                             width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Center(
-                                child: Icon(
-                                  Icons.broken_image,
-                                  size: 50,
-                                  color: Colors.grey,
-                                ),
-                              );
-                            },
+                             
                           ),
                         )
                         : Column(
@@ -566,20 +559,49 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
               },
             ),
             const SizedBox(height: 16),
-            const Text('Giới tính cho phép tham gia:'),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment<String>(value: 'male', label: Text('Nam')),
-                ButtonSegment<String>(value: 'female', label: Text('Nữ')),
-                ButtonSegment<String>(value: 'mixed', label: Text('Hỗn hợp')),
-              ],
-              selected: {_genderRestriction},
-              onSelectionChanged: (Set<String> newSelection) {
-                setState(() {
-                  _genderRestriction = newSelection.first;
-                });
+            DropdownButtonFormField<TournamentStatus>(
+              value: _status,
+              decoration: const InputDecoration(
+                labelText: 'Trạng thái',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.checklist),
+              ),
+              items:
+                  TournamentStatus.values.map((TournamentStatus value) {
+                    return DropdownMenuItem<TournamentStatus>(
+                      value: value,
+                      child: Text(value.name),
+                    );
+                  }).toList(),
+              validator: (value) {
+                if (value == null) {
+                  return 'Vui lòng chọn trạng thái';
+                }
+                return null;
+              },
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _status = value;
+                  });
+                }
               },
             ),
+            const SizedBox(height: 16),
+            // const Text('Giới tính cho phép tham gia:'),
+            // SegmentedButton<String>(
+            //   segments: const [
+            //     ButtonSegment<String>(value: 'male', label: Text('Nam')),
+            //     ButtonSegment<String>(value: 'female', label: Text('Nữ')),
+            //     ButtonSegment<String>(value: 'mixed', label: Text('Hỗn hợp')),
+            //   ],
+            //   selected: {_genderRestriction},
+            //   onSelectionChanged: (Set<String> newSelection) {
+            //     setState(() {
+            //       _genderRestriction = newSelection.first;
+            //     });
+            //   },
+            // ),
           ],
         ),
       ),

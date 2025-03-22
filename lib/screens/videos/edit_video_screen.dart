@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:internal_core/internal_core.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../utils/constants.dart';
@@ -178,7 +179,7 @@ class _EditVideoScreenState extends State<EditVideoScreen> {
                                               _thumbnailUrl!.isNotEmpty
                                           ? DecorationImage(
                                             image: NetworkImage(
-                                              correctUrlImage(_thumbnailUrl),
+                                              appImageCorrectUrl(_thumbnailUrl!),
                                             ),
                                             fit: BoxFit.cover,
                                           )

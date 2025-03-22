@@ -1,92 +1,61 @@
+import 'player.dart';
+
 class Team {
-  final String id;
-  final String name;
-  final int registrationStatus; // 0: pending, 1: approved, 2: rejected
-  final int paymentStatus; // 0: unpaid, 1: pending, 2: completed, 3: failed
-  final String? paymentCode; // Mã code để xác định callback từ cổng thanh toán
-  final DateTime? registrationDate;
-  final int? tournamentId;
-  final int? playerId1;
-  final int? playerId2;
-  final int? packageId;
+  int? id;
+  String? uniqueId;
+  String? name;
+  int? registrationStatus;
+  int? paymentStatus;
+  String? paymentCode;
+  String? registrationDate;
+  int? packageId;
+  Player? player1;
+  Player? player2;
 
   Team({
-    required this.id,
-    required this.name,
-    this.registrationStatus = 0,
-    this.paymentStatus = 0,
+    this.id,
+    this.uniqueId,
+    this.name,
+    this.registrationStatus,
+    this.paymentStatus,
     this.paymentCode,
     this.registrationDate,
-    this.tournamentId,
-    this.playerId1,
-    this.playerId2,
     this.packageId,
+    this.player1,
+    this.player2,
   });
 
-  // Tạo từ JSON
-  factory Team.fromJson(Map<String, dynamic> json) {
-    return Team(
-      id: json['id'].toString(),
-      name: json['name'] ?? '',
-      registrationStatus: json['registration_status'] ?? 0,
-      paymentStatus: json['payment_status'] ?? 0,
-      paymentCode: json['payment_code'],
-      registrationDate:
-          json['registration_date'] != null
-              ? DateTime.parse(json['registration_date'])
-              : null,
-      tournamentId: json['tournament_id'],
-      playerId1: json['player_id1'],
-      playerId2: json['player_id2'],
-      packageId: json['package_id'],
-    );
+  Team.fromJson(Map<String, dynamic> json) {
+    id = json["id"];
+    name = json["name"];
+    registrationStatus = json["registration_status"];
+    paymentStatus = json["payment_status"];
+    paymentCode = json["payment_code"];
+    registrationDate = json["registration_date"];
+    packageId = json["package_id"];
+    player1 = json["player1"] == null ? null : Player.fromJson(json["player1"]);
+    player2 = json["player2"] == null ? null : Player.fromJson(json["player2"]);
   }
 
-  // Chuyển đổi thành JSON
+  static List<Team> fromList(List<Map<String, dynamic>> list) {
+    return list.map(Team.fromJson).toList();
+  }
+
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'registration_status': registrationStatus,
-      'payment_status': paymentStatus,
-      'payment_code': paymentCode,
-      'registration_date': registrationDate?.toIso8601String(),
-      'tournament_id': tournamentId,
-      'player_id1': playerId1,
-      'player_id2': playerId2,
-      'package_id': packageId,
-    };
-  }
-
-  // Tạo bản sao với một số thuộc tính được cập nhật
-  Team copyWith({
-    String? id,
-    String? name,
-    int? registrationStatus,
-    int? paymentStatus,
-    String? paymentCode,
-    DateTime? registrationDate,
-    int? tournamentId,
-    int? playerId1,
-    int? playerId2,
-    int? packageId,
-  }) {
-    return Team(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      registrationStatus: registrationStatus ?? this.registrationStatus,
-      paymentStatus: paymentStatus ?? this.paymentStatus,
-      paymentCode: paymentCode ?? this.paymentCode,
-      registrationDate: registrationDate ?? this.registrationDate,
-      tournamentId: tournamentId ?? this.tournamentId,
-      playerId1: playerId1 ?? this.playerId1,
-      playerId2: playerId2 ?? this.playerId2,
-      packageId: packageId ?? this.packageId,
-    );
+    final Map<String, dynamic> _data = <String, dynamic>{};
+    _data["id"] = id;
+    _data["name"] = name;
+    _data["registration_status"] = registrationStatus;
+    _data["payment_status"] = paymentStatus;
+    _data["payment_code"] = paymentCode;
+    _data["registration_date"] = registrationDate;
+    _data["package_id"] = packageId;
+    if (player1 != null) {
+      _data["player1"] = player1?.toJson();
+    }
+    if (player2 != null) {
+      _data["player2"] = player2?.toJson();
+    }
+    return _data;
   }
 }
-
-// Enum cho trạng thái đăng ký và thanh toán
-enum RegistrationStatus { pending, approved, rejected }
-
-enum PaymentStatus { unpaid, pending, completed, failed }

@@ -27,7 +27,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
   final TextEditingController _team1ScoreController = TextEditingController();
   final TextEditingController _team2ScoreController = TextEditingController();
 
-  List<match_model.Match> _matches = [];
+  List<match_model.TournamentMatch> _matches = [];
   List<Team> _availableTeams = [];
   bool _isLoading = true;
   bool _isLoadingTeams = true;
@@ -90,7 +90,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
           setState(() {
             _matches =
                 matchesData
-                    .map((match) => match_model.Match.fromJson(match))
+                    .map((match) => match_model.TournamentMatch.fromJson(match))
                     .toList();
             _isLoading = false;
           });
@@ -194,7 +194,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                           _availableTeams.map((team) {
                             return DropdownMenuItem<Team>(
                               value: team,
-                              child: Text(team.name),
+                              child: Text(team.name ?? ''),
                             );
                           }).toList(),
                       onChanged: (Team? newValue) {
@@ -214,7 +214,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                           _availableTeams.map((team) {
                             return DropdownMenuItem<Team>(
                               value: team,
-                              child: Text(team.name),
+                              child: Text(team.name ?? ''),
                             );
                           }).toList(),
                       onChanged: (Team? newValue) {
@@ -366,10 +366,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
     }
   }
 
-  Future<void> _showUpdateMatchDialog(match_model.Match match) async {
+  Future<void> _showUpdateMatchDialog(match_model.TournamentMatch match) async {
     _team1ScoreController.text = match.team1Score?.toString() ?? '';
     _team2ScoreController.text = match.team2Score?.toString() ?? '';
-    _selectedStatus = match.matchStatus;
+    _selectedStatus = match.matchStatus!;
 
     return showDialog<void>(
       context: context,
@@ -391,7 +391,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                match.team1!.name,
+                                match.team1!.name ?? '',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -404,7 +404,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                             ),
                             Expanded(
                               child: Text(
-                                match.team2!.name,
+                                match.team2!.name ?? '',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -496,7 +496,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     );
   }
 
-  Future<void> _updateMatch(match_model.Match match) async {
+  Future<void> _updateMatch(match_model.TournamentMatch match) async {
     setState(() {
       _isLoading = true;
     });
@@ -515,9 +515,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
         team1Score != null &&
         team2Score != null) {
       if (team1Score > team2Score) {
-        winnerId = match.team1Id;
+        winnerId = match.team1!.id;
       } else if (team2Score > team1Score) {
-        winnerId = match.team2Id;
+        winnerId = match.team2!.id;
       }
       // Trường hợp hoà, winnerId = null
     }
@@ -570,7 +570,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     }
   }
 
-  Future<void> _showDeleteMatchDialog(match_model.Match match) async {
+  Future<void> _showDeleteMatchDialog(match_model.TournamentMatch match) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -595,7 +595,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
               child: const Text('Xóa', style: TextStyle(color: Colors.red)),
               onPressed: () {
                 Navigator.of(context).pop();
-                _deleteMatch(match.id);
+                _deleteMatch(match.id ?? 0);
               },
             ),
           ],
@@ -740,7 +740,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     }
   }
 
-  Widget _buildMatchCard(match_model.Match match) {
+  Widget _buildMatchCard(match_model.TournamentMatch match) {
     final bool hasScores = match.team1Score != null && match.team2Score != null;
     final bool isCompleted =
         match.matchStatus == match_model.MatchStatus.completed;
@@ -782,9 +782,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
                     const SizedBox(width: 4),
                     Text(
-                      DateFormat(
-                        'dd/MM/yyyy HH:mm',
-                      ).format(match.scheduledTime),
+                       match.scheduledTime ?? '' ,
                       style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ],
@@ -894,7 +892,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     ],
                   ),
                 if (match.matchStatus == match_model.MatchStatus.completed &&
-                    match.winnerId != null)
+                    match.winner != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Row(
@@ -907,7 +905,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Người chiến thắng: ${match.winnerId == match.team1Id ? match.team1?.name : match.team2?.name}',
+                          'Người chiến thắng: ${match.winner?.name}',
                           style: const TextStyle(
                             color: Colors.amber,
                             fontWeight: FontWeight.bold,

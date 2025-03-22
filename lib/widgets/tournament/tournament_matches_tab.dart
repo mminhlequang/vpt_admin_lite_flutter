@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:vpt_admin_lite_flutter/screens/tournaments/rounds_screen.dart';
 import '../../models/tournament.dart';
 import '../../models/match.dart';
 import '../../utils/constants.dart';
@@ -9,12 +10,14 @@ class TournamentMatchesTab extends StatefulWidget {
   final Tournament tournament;
   final Function() onUpdateResults;
   final Function() onEditSchedule;
+  final VoidCallback fetchTournament;
 
   const TournamentMatchesTab({
     super.key,
     required this.tournament,
     required this.onUpdateResults,
     required this.onEditSchedule,
+    required this.fetchTournament,
   });
 
   @override
@@ -45,23 +48,23 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                 borderRadius: BorderRadius.circular(8),
                 children: const [
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 12),
                     child: Text('Cây giải đấu'),
                   ),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 12),
                     child: Text('Danh sách'),
                   ),
                 ],
               ),
               // Nút chỉnh sửa lịch thi đấu
-              // if (widget.tournament.status == TournamentStatus.preparing ||
-              //     widget.tournament.status == TournamentStatus.ongoing)
-              TextButton.icon(
-                onPressed: widget.onEditSchedule,
-                icon: const Icon(Icons.edit_calendar),
-                label: const Text('Chỉnh sửa lịch'),
-              ),
+              if (widget.tournament.status == TournamentStatus.preparing ||
+                  widget.tournament.status == TournamentStatus.ongoing)
+                TextButton.icon(
+                  onPressed: widget.onEditSchedule,
+                  icon: const Icon(Icons.edit_calendar),
+                  label: const Text('Lịch'),
+                ),
             ],
           ),
         ),
@@ -82,10 +85,10 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
 
   Widget _buildListView() {
     // Lấy tất cả trận đấu từ tất cả vòng
-    final allMatches = <Match>[];
+    final allMatches = <TournamentMatch>[];
     if (widget.tournament.rounds != null) {
       for (final round in widget.tournament.rounds!) {
-        allMatches.addAll(round.matches);
+        allMatches.addAll(round.matches ?? []);
       }
     }
 
@@ -104,6 +107,37 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            'Quản lý vòng đấu',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tổ chức các vòng đấu, phân chia trận đấu và theo dõi tiến độ giải',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => RoundsScreen(
+                        tournament: widget.tournament,
+                        fetchTournament: widget.fetchTournament,
+                      ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.sports),
+            label: const Text('Quản lý vòng đấu'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 24),
           const Text(
             'Kết quả trận đấu',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -138,7 +172,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color:
-                                        match.winnerId == match.team1Id
+                                        match.winner?.id == match.team1?.id
                                             ? Colors.green
                                             : null,
                                   ),
@@ -163,7 +197,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color:
-                                        match.winnerId == match.team2Id
+                                        match.winner?.id == match.team2?.id
                                             ? Colors.green
                                             : null,
                                   ),
@@ -182,9 +216,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                DateFormat(
-                                  'dd/MM HH:mm',
-                                ).format(match.scheduledTime),
+                                match.scheduledTime ?? "",
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               const SizedBox(width: 16),
@@ -276,9 +308,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                DateFormat(
-                                  'dd/MM HH:mm',
-                                ).format(match.scheduledTime),
+                                match.scheduledTime ?? "",
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                               const SizedBox(width: 16),
@@ -326,13 +356,13 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
     );
   }
 
-  void _showMatchDetailsDialog(Match match) {
+  void _showMatchDetailsDialog(TournamentMatch match) {
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
             title: Text(
-              _getRoundName(match.roundId),
+              _getRoundName(match.round?.id ?? 0),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             content: Column(
@@ -347,7 +377,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color:
-                              match.winnerId == match.team1Id
+                              match.winner?.id == match.team1?.id
                                   ? Colors.green
                                   : null,
                         ),
@@ -379,7 +409,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color:
-                              match.winnerId == match.team2Id
+                              match.winner?.id == match.team2?.id
                                   ? Colors.green
                                   : null,
                         ),
@@ -398,14 +428,14 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      DateFormat('dd/MM/yyyy').format(match.scheduledTime),
+                      match.scheduledTime ?? "",
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                     const SizedBox(width: 16),
                     Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
                     const SizedBox(width: 4),
                     Text(
-                      DateFormat('HH:mm').format(match.scheduledTime),
+                      match.scheduledTime ?? "",
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   ],
@@ -429,15 +459,23 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(match.matchStatus).withOpacity(0.1),
+                    color: _getStatusColor(
+                      match.matchStatus ?? MatchStatus.pending,
+                    ).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: _getStatusColor(match.matchStatus),
+                      color: _getStatusColor(
+                        match.matchStatus ?? MatchStatus.pending,
+                      ),
                     ),
                   ),
                   child: Text(
-                    _getStatusText(match.matchStatus),
-                    style: TextStyle(color: _getStatusColor(match.matchStatus)),
+                    _getStatusText(match.matchStatus ?? MatchStatus.pending),
+                    style: TextStyle(
+                      color: _getStatusColor(
+                        match.matchStatus ?? MatchStatus.pending,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -465,7 +503,7 @@ class _TournamentMatchesTabState extends State<TournamentMatchesTab> {
 
     for (final round in widget.tournament.rounds!) {
       if (round.id == roundId) {
-        return round.name;
+        return round.name ?? '';
       }
     }
     return 'Trận đấu';

@@ -181,6 +181,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
         'content': _descriptionController.text,
         'type': _tournamentType,
         'category_id': _selectedCategoryId,
+        'status': TournamentStatus.preparing.name,
       });
 
       if (_avatarFile != null) {

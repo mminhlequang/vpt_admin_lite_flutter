@@ -1,9 +1,12 @@
+import 'dart:math' show Random;
+
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:internal_core/internal_core.dart';
 import 'package:intl/intl.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../utils/constants.dart';
@@ -18,13 +21,30 @@ class CreatePlayerScreen extends StatefulWidget {
 
 class _CreatePlayerScreenState extends State<CreatePlayerScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _heightController = TextEditingController();
-  final TextEditingController _weightController = TextEditingController();
-  final TextEditingController _birthDateController = TextEditingController();
-  final TextEditingController _birthPlaceController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController(
+    text: kDebugMode ? 'Nguyen Van ${Random().nextInt(1000000)}' : '',
+  );
+  final TextEditingController _emailController = TextEditingController(
+    text: kDebugMode ? 'nguyenvana${Random().nextInt(1000000)}@gmail.com' : '',
+  );
+  final TextEditingController _phoneController = TextEditingController(
+    text: kDebugMode ? '09090${intInRange(100000, 999999)}' : '',
+  );
+  final TextEditingController _heightController = TextEditingController(
+    text: kDebugMode ? '${intInRange(150, 200)}' : '',
+  );
+  final TextEditingController _weightController = TextEditingController(
+    text: kDebugMode ? '${intInRange(50, 100)}' : '',
+  );
+  final TextEditingController _birthDateController = TextEditingController(
+    text:
+        kDebugMode
+            ? '${intInRange(1990, 2005)}-${intInRange(1, 12)}-${intInRange(1, 31)}'
+            : '',
+  );
+  final TextEditingController _birthPlaceController = TextEditingController(
+    text: kDebugMode ? 'Ha Noi' : '',
+  );
 
   String _backHand = 'Left-Handed';
   String _plays = 'Left-Handed';
@@ -136,7 +156,6 @@ class _CreatePlayerScreenState extends State<CreatePlayerScreen> {
         final response = await appDioClient.post(
           '/player/create',
           data: formData,
-          
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {

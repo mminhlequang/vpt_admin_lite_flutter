@@ -10,108 +10,22 @@ import '../../widgets/loading_indicator.dart';
 import 'package:intl/intl.dart';
 
 class PackagesScreen extends StatefulWidget {
-    final Tournament tournament; 
-
+  final Tournament tournament;
+  final VoidCallback fetchCallback;
   const PackagesScreen({
-    Key? key,
+    super.key,
     required this.tournament,
-  }) : super(key: key);
+    required this.fetchCallback,
+  });
 
   @override
   State<PackagesScreen> createState() => _PackagesScreenState();
 }
 
 class _PackagesScreenState extends State<PackagesScreen> {
-  bool _isLoading = true;
-  bool _isLoadingCategories = true;
-  List<TourPackage> _packages = [];
-  List<Category> _categories = [];
+  List<TourPackage> get _packages => widget.tournament.packages ?? [];
+  List<Category> get _categories => [widget.tournament.category!];
   String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    await Future.wait([_loadPackages(), _loadCategories()]);
-  }
-
-  Future<void> _loadPackages() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final response = await appDioClient.get(
-        '/tournament/get_packages',
-        queryParameters: {'tournament_id': widget.tournament.id},
-      );
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data['status']) {
-          final packagesData = data['data'] as List;
-          setState(() {
-            _packages =
-                packagesData.map((item) => TourPackage.fromJson(item)).toList();
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _errorMessage = data['message'] ?? 'Không thể tải gói đăng ký';
-            _isLoading = false;
-          });
-        }
-      } else {
-        setState(() {
-          _errorMessage = 'Lỗi kết nối: ${response.statusCode}';
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Không thể tải gói đăng ký: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadCategories() async {
-    setState(() {
-      _isLoadingCategories = true;
-    });
-
-    try {
-      final response = await appDioClient.get('/tournament/get_categories');
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data['status']) {
-          final categoriesData = data['data'] as List;
-          setState(() {
-            _categories =
-                categoriesData.map((item) => Category.fromJson(item)).toList();
-            _isLoadingCategories = false;
-          });
-        } else {
-          setState(() {
-            _isLoadingCategories = false;
-          });
-        }
-      } else {
-        setState(() {
-          _isLoadingCategories = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _isLoadingCategories = false;
-      });
-    }
-  }
 
   String _getStatusText(int enable) {
     return enable == 1 ? 'Đang kích hoạt' : 'Đã tắt';
@@ -126,7 +40,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     return Scaffold(
       body: _buildBody(),
       floatingActionButton:
-          _packages.isNotEmpty || _isLoading
+          _packages.isNotEmpty
               ? null
               : FloatingActionButton(
                 onPressed: () {
@@ -146,10 +60,6 @@ class _PackagesScreenState extends State<PackagesScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading || _isLoadingCategories) {
-      return const Center(child: LoadingIndicator());
-    }
-
     if (_errorMessage != null) {
       return Center(
         child: Column(
@@ -162,7 +72,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _loadPackages,
+              onPressed: widget.fetchCallback,
               child: const Text('Thử lại'),
             ),
           ],
@@ -190,7 +100,9 @@ class _PackagesScreenState extends State<PackagesScreen> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Giá: ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(package.price ?? 0)}'),
+                Text(
+                  'Giá: ${NumberFormat.currency(locale: 'vi_VN', symbol: 'đ').format(package.price ?? 0)}',
+                ),
                 Text('Danh mục: ${package.category?.name ?? 'Không tìm thấy'}'),
                 Text(
                   'Trạng thái: ${_getStatusText(package.enable)}',
@@ -354,7 +266,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Đã thêm gói đăng ký mới')),
                     );
-                    _loadPackages();
+                    widget.fetchCallback();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Lỗi: ${e.toString()}')),
@@ -483,7 +395,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Đã cập nhật gói đăng ký')),
                   );
-                  _loadPackages();
+                  widget.fetchCallback();
                 }
               },
               child: const Text('Lưu'),
@@ -519,7 +431,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Đã xóa gói đăng ký')),
                 );
-                _loadPackages();
+                widget.fetchCallback();
               },
               child: const Text('Xóa'),
             ),

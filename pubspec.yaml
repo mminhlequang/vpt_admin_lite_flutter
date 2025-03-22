@@ -66,10 +66,12 @@ dependencies:
     git:
       url: https://github.com/mminhlequang/internal_libs_flutter.git
       path: core/
+      ref: 29c95487e2043aabf71104528a6b80f86726d5c5
   internal_network:
     git:
       url: https://github.com/mminhlequang/internal_libs_flutter.git
       path: network/
+      ref: 29c95487e2043aabf71104528a6b80f86726d5c5
 
 override_dependencies:
   intl: ^0.19.0

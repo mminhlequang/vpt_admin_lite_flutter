@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:internal_core/internal_core.dart';
 import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../models/video.dart';
 
@@ -26,8 +27,8 @@ class VideoListItem extends StatelessWidget {
                 children: [
                   // Video thumbnail
                   video.avatar != null && video.avatar!.isNotEmpty
-                      ? Image.network(
-                        correctUrlImage(video.avatar),
+                      ? WidgetAppImage(
+                        imageUrl: video.avatar,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container();

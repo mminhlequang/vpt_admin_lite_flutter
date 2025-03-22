@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
+import 'package:vpt_admin_lite_flutter/models/models.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/round.dart';
 import '../../models/tournament.dart';
@@ -10,8 +11,13 @@ import 'matches_screen.dart';
 
 class RoundsScreen extends StatefulWidget {
   final Tournament tournament;
+  final VoidCallback fetchTournament;
 
-  const RoundsScreen({Key? key, required this.tournament}) : super(key: key);
+  const RoundsScreen({
+    Key? key,
+    required this.tournament,
+    required this.fetchTournament,
+  }) : super(key: key);
 
   @override
   _RoundsScreenState createState() => _RoundsScreenState();
@@ -29,7 +35,7 @@ class _RoundsScreenState extends State<RoundsScreen> {
   @override
   void initState() {
     super.initState();
-     
+
     _loadRounds();
   }
 
@@ -50,7 +56,6 @@ class _RoundsScreenState extends State<RoundsScreen> {
       final response = await appDioClient.get(
         '/tournament/get_rounds',
         queryParameters: {'tournament_id': widget.tournament.id},
-        
       );
 
       if (response.statusCode == 200) {
@@ -81,6 +86,235 @@ class _RoundsScreenState extends State<RoundsScreen> {
         _isLoading = false;
         _rounds = [];
       });
+    }
+  }
+
+  _generateRoundAutomatically() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      // Kiểm tra xem đã đủ số đội chưa
+      if ((widget.tournament.teams?.length ?? 0) <
+          (widget.tournament.numberOfTeam ?? 0)) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Chưa đủ số đội tham gia để tạo vòng đấu';
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_errorMessage)));
+        return;
+      }
+
+      // Xác định xem đang tạo vòng đầu tiên hay vòng tiếp theo
+      bool isFirstRound = _rounds.isEmpty;
+
+      if (isFirstRound) {
+        // Tạo vòng đấu đầu tiên
+        await _createFirstRound();
+      } else {
+        // Kiểm tra vòng đấu cuối cùng đã hoàn thành chưa
+        Round lastRound = _rounds.last;
+        bool canCreateNextRound = await _checkCanCreateNextRound(lastRound);
+
+        if (canCreateNextRound) {
+          await _createNextRound(lastRound);
+        } else {
+          setState(() {
+            _isLoading = false;
+            _errorMessage =
+                'Vòng đấu hiện tại chưa hoàn thành hoặc không đủ đội thắng để tạo vòng tiếp theo';
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(_errorMessage)));
+        }
+      }
+
+      _loadRounds(); // Tải lại danh sách vòng đấu sau khi cập nhật
+
+      widget.fetchTournament();
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Lỗi: ${e.toString()}';
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_errorMessage)));
+    }
+  }
+
+  Future<void> _createFirstRound() async {
+    // Lấy danh sách đội tham gia
+    final teams = widget.tournament.teams ?? [];
+    if (teams.isEmpty) return;
+
+    // Tạo vòng đấu đầu tiên
+    final roundName = _determineRoundName(
+      widget.tournament.numberOfTeam ?? teams.length,
+    );
+    final response = await appDioClient.post(
+      '/tournament/create_round',
+      data: {
+        'tournament_id': widget.tournament.id,
+        'name': roundName,
+        'start_time': DateTime.now()
+            .add(const Duration(days: 7))
+            .toString()
+            .substring(0, 16),
+      },
+    );
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception('Không thể tạo vòng đấu: ${response.statusCode}');
+    }
+
+    final roundData = response.data;
+    if (!roundData['status']) {
+      throw Exception(roundData['message'] ?? 'Không thể tạo vòng đấu');
+    }
+
+    // Lấy ID của vòng đấu mới tạo
+    final roundId = roundData['data']['id'];
+
+    // Tạo các trận đấu cho vòng này
+    await _createMatchesForFirstRound(roundId, teams);
+  }
+
+  String _determineRoundName(int numberOfTeams) {
+    if (numberOfTeams <= 2) return 'Chung kết';
+    if (numberOfTeams <= 4) return 'Bán kết';
+    if (numberOfTeams <= 8) return 'Tứ kết';
+    if (numberOfTeams <= 16) return 'Vòng 1/8';
+    if (numberOfTeams <= 32) return 'Vòng 1/16';
+    if (numberOfTeams <= 64) return 'Vòng 1/32';
+    return 'Vòng loại';
+  }
+
+  Future<void> _createMatchesForFirstRound(
+    int roundId,
+    List<dynamic> teams,
+  ) async {
+    // Xáo trộn danh sách đội ngẫu nhiên để tạo cặp đấu
+    teams.shuffle();
+
+    for (int i = 0; i < teams.length; i += 2) {
+      if (i + 1 >= teams.length) break; // Bỏ qua nếu số lẻ đội
+
+      final team1 = teams[i];
+      final team2 = teams[i + 1];
+
+      // Tạo trận đấu cho cặp đội này
+      final scheduledTime = DateTime.now().add(Duration(days: 7, hours: i));
+      await appDioClient.post(
+        '/tournament/create_match',
+        data: {
+          'round_id': roundId,
+          'team1_id': team1.id,
+          'team2_id': team2.id,
+          'stadium': 'Sân ${i ~/ 2 + 1}',
+          'match_status': 'pending',
+          'scheduled_time': scheduledTime.toString().substring(0, 16),
+        },
+      );
+    }
+  }
+
+  Future<bool> _checkCanCreateNextRound(Round lastRound) async {
+    // Kiểm tra xem tất cả các trận trong vòng cuối cùng đã hoàn thành chưa
+    if (lastRound.matches == null || lastRound.matches!.isEmpty) {
+      return false;
+    }
+
+    bool allCompleted = true;
+    final winningTeamIds = <int>[];
+
+    for (var match in lastRound.matches!) {
+      if (match.matchStatus != MatchStatus.completed) {
+        allCompleted = false;
+        break;
+      }
+
+      // Thu thập ID của các đội thắng
+      if (match.winner != null) {
+        winningTeamIds.add(match.winner!.id!);
+      }
+    }
+
+    // Cần ít nhất 2 đội thắng để tạo vòng tiếp theo
+    return allCompleted && winningTeamIds.length >= 2;
+  }
+
+  Future<void> _createNextRound(Round lastRound) async {
+    // Thu thập ID của các đội thắng từ vòng trước
+    final winningTeamIds = <int>[];
+
+    for (var match in lastRound.matches!) {
+      if (match.winner != null) {
+        winningTeamIds.add(match.winner!.id!);
+      }
+    }
+
+    // Tạo vòng đấu mới
+    final roundName = _determineRoundName(winningTeamIds.length);
+    final response = await appDioClient.post(
+      '/tournament/create_round',
+      data: {
+        'tournament_id': widget.tournament.id,
+        'name': roundName,
+        'start_time': DateTime.now()
+            .add(const Duration(days: 7))
+            .toString()
+            .substring(0, 16),
+      },
+    );
+
+    if (response.statusCode != 201 && response.statusCode != 200) {
+      throw Exception('Không thể tạo vòng đấu: ${response.statusCode}');
+    }
+
+    final roundData = response.data;
+    if (!roundData['status']) {
+      throw Exception(roundData['message'] ?? 'Không thể tạo vòng đấu');
+    }
+
+    // Lấy ID của vòng đấu mới tạo
+    final roundId = roundData['data']['id'];
+
+    // Tạo các trận đấu cho vòng này dựa trên các đội thắng
+    await _createMatchesForNextRound(roundId, winningTeamIds);
+  }
+
+  Future<void> _createMatchesForNextRound(
+    int roundId,
+    List<int> winningTeamIds,
+  ) async {
+    // Xáo trộn danh sách đội thắng để tạo cặp đấu
+    winningTeamIds.shuffle();
+
+    for (int i = 0; i < winningTeamIds.length; i += 2) {
+      if (i + 1 >= winningTeamIds.length) break; // Bỏ qua nếu số lẻ đội
+
+      final team1Id = winningTeamIds[i];
+      final team2Id = winningTeamIds[i + 1];
+
+      // Tạo trận đấu cho cặp đội này
+      final scheduledTime = DateTime.now().add(Duration(days: 7, hours: i));
+      await appDioClient.post(
+        '/tournament/create_match',
+        data: {
+          'round_id': roundId,
+          'team1_id': team1Id,
+          'team2_id': team2Id,
+          'stadium': 'Sân ${i ~/ 2 + 1}',
+          'match_status': 'pending',
+          'scheduled_time': scheduledTime.toString().substring(0, 16),
+        },
+      );
     }
   }
 
@@ -191,7 +425,6 @@ class _RoundsScreenState extends State<RoundsScreen> {
             'yyyy-MM-dd HH:mm',
           ).format(_selectedStartTime!),
         },
-        
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
@@ -231,11 +464,15 @@ class _RoundsScreenState extends State<RoundsScreen> {
   }
 
   Future<void> _showEditRoundDialog(Round round) async {
-    _roundNameController.text = round.name;
-    _selectedStartTime = round.startTime;
-    _startTimeController.text = DateFormat(
-      'dd/MM/yyyy HH:mm',
-    ).format(round.startTime);
+    _roundNameController.text = round.name ?? '';
+    _selectedStartTime =
+        round.startTime != null ? DateTime.parse(round.startTime!) : null;
+    _startTimeController.text =
+        round.startTime != null
+            ? DateFormat(
+              'dd/MM/yyyy HH:mm',
+            ).format(DateTime.parse(round.startTime!))
+            : '';
 
     return showDialog<void>(
       context: context,
@@ -308,7 +545,7 @@ class _RoundsScreenState extends State<RoundsScreen> {
                 if (_roundNameController.text.isNotEmpty &&
                     _selectedStartTime != null) {
                   Navigator.of(context).pop();
-                  _updateRound(round.id);
+                  _updateRound(round.id ?? 0);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -340,7 +577,6 @@ class _RoundsScreenState extends State<RoundsScreen> {
             'yyyy-MM-dd HH:mm',
           ).format(_selectedStartTime!),
         },
-        
       );
 
       if (response.statusCode == 200) {
@@ -411,7 +647,7 @@ class _RoundsScreenState extends State<RoundsScreen> {
               child: const Text('Xóa', style: TextStyle(color: Colors.red)),
               onPressed: () {
                 Navigator.of(context).pop();
-                _deleteRound(round.id);
+                _deleteRound(round.id ?? 0);
               },
             ),
           ],
@@ -429,7 +665,6 @@ class _RoundsScreenState extends State<RoundsScreen> {
       final response = await appDioClient.delete(
         '/tournament/delete_round',
         data: {'id': roundId},
-        
       );
 
       if (response.statusCode == 200) {
@@ -517,6 +752,27 @@ class _RoundsScreenState extends State<RoundsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Số đội đã đăng ký: ${widget.tournament.teams?.length ?? 0}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        Text("   /   "),
+                        Text(
+                          'Số đội cần có: ${widget.tournament.numberOfTeam ?? 0}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     const Icon(
                       Icons.sports_outlined,
                       size: 64,
@@ -541,6 +797,15 @@ class _RoundsScreenState extends State<RoundsScreen> {
                       icon: const Icon(Icons.add),
                       label: const Text('Thêm vòng đấu mới'),
                     ),
+                    if ((widget.tournament.teams?.length ?? 0) >=
+                        (widget.tournament.numberOfTeam ?? 0)) ...[
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _generateRoundAutomatically,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Tạo tự động'),
+                      ),
+                    ],
                   ],
                 ),
               )
@@ -564,7 +829,7 @@ class _RoundsScreenState extends State<RoundsScreen> {
                               ),
                             ),
                             title: Text(
-                              round.name,
+                              round.name ?? '',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
@@ -583,7 +848,7 @@ class _RoundsScreenState extends State<RoundsScreen> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Bắt đầu: ${DateFormat('dd/MM/yyyy HH:mm').format(round.startTime)}',
+                                      'Bắt đầu: ${round.startTime != null ? DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(round.startTime!)) : ''}',
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                   ],
@@ -598,7 +863,7 @@ class _RoundsScreenState extends State<RoundsScreen> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Số trận: ${round.matches.length}',
+                                      'Số trận: ${round.matches?.length ?? 0}',
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                   ],

@@ -27,6 +27,7 @@ class Tournament {
   dynamic linkInstagram;
   dynamic linkTwitter;
   String? content;
+  TournamentStatus?  status;
 
   List<Team>? teams;
   List<Round>? rounds;
@@ -56,6 +57,7 @@ class Tournament {
     this.content,
     this.teams,
     this.rounds,
+    this.status = TournamentStatus.preparing,
   });
 
   Tournament.fromJson(Map<String, dynamic> json) {
@@ -89,12 +91,15 @@ class Tournament {
     content = json["content"];
     teams =
         json["teams"] == null
-            ? []
-            : json["teams"].map((e) => Team.fromJson(e)).toList();
+            ? null
+            : List<Team>.from(json["teams"].map((x) => Team.fromJson(x)));
     rounds =
-        json["rounds"] == null
-            ? []
-            : json["rounds"].map((e) => Round.fromJson(e)).toList();
+        json["rounds"] is List
+            ? List<Round>.from(json["rounds"].map((x) => Round.fromJson(x)))
+            : null;
+    status = json["status"] == null
+        ? TournamentStatus.preparing
+        : TournamentStatus.values.byName(json["status"]);
   }
 
   static List<Tournament> fromList(List<Map<String, dynamic>> list) {
@@ -131,6 +136,7 @@ class Tournament {
     _data["content"] = content;
     _data["teams"] = teams?.map((e) => e.toJson()).toList();
     _data["rounds"] = rounds?.map((e) => e.toJson()).toList();
+    _data["status"] = status?.name;
     return _data;
   }
 }

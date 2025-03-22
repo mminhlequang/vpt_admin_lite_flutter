@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:internal_core/internal_core.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
 import '../../models/player.dart';
@@ -70,9 +71,12 @@ class _PlayerDetailScreenState extends State<PlayerDetailScreen> {
       child: Column(
         children: [
           if (_player.avatar != null && _player.avatar!.isNotEmpty)
-            CircleAvatar(
+            WidgetAppImage(
+              imageUrl: _player.avatar,
+              width: 100,
+              height: 100,
               radius: 50,
-              backgroundImage: NetworkImage(correctUrlImage(_player.avatar)),
+              fit: BoxFit.cover,
             )
           else
             CircleAvatar(

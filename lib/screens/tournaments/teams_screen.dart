@@ -11,21 +11,25 @@ import '../../widgets/loading_indicator.dart';
 
 class TeamsScreen extends StatefulWidget {
   final Tournament tournament;
+  final VoidCallback fetchCallback;
 
-  const TeamsScreen({super.key, required this.tournament});
+  const TeamsScreen({
+    super.key,
+    required this.tournament,
+    required this.fetchCallback,
+  });
 
   @override
   State<TeamsScreen> createState() => _TeamsScreenState();
 }
 
 class _TeamsScreenState extends State<TeamsScreen> {
-  bool _isLoading = true;
-  bool _isLoadingPackages = true;
   bool _isLoadingPlayers = true;
-  List<Team> _teams = [];
-  List<TourPackage> _packages = [];
-  List<Player> _players = [];
+  List<Team> get _teams => widget.tournament.teams ?? [];
+  List<TourPackage> get _packages => widget.tournament.packages ?? [];
   String? _errorMessage;
+
+  List<Player> _players = [];
 
   @override
   void initState() {
@@ -34,7 +38,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 
   Future<void> _loadData() async {
-    await Future.wait([_loadTeams(), _loadPackages(), _loadPlayers()]);
+    await Future.wait([_loadPlayers()]);
   }
 
   Future<void> _loadPlayers() async {
@@ -57,63 +61,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
     } catch (e) {
       setState(() {
         _isLoadingPlayers = false;
-      });
-    }
-  }
-
-  Future<void> _loadTeams() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final response = await appDioClient.get(
-        '/tournament/get_teams',
-        queryParameters: {'tournament_id': widget.tournament.id},
-      );
-
-      final List<Team> teams =
-          (response.data['data'] as List)
-              .map((teamJson) => Team.fromJson(teamJson))
-              .toList();
-
-      setState(() {
-        _teams = teams;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Không thể tải danh sách đội: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadPackages() async {
-    setState(() {
-      _isLoadingPackages = true;
-    });
-
-    try {
-      final response = await appDioClient.get(
-        '/tournament/get_packages',
-        queryParameters: {'tournament_id': widget.tournament.id},
-      );
-
-      final List<dynamic> packagesData = response.data['data'] as List;
-      final packages =
-          packagesData
-              .map((packageJson) => TourPackage.fromJson(packageJson))
-              .toList();
-
-      setState(() {
-        _packages = packages;
-        _isLoadingPackages = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoadingPackages = false;
       });
     }
   }
@@ -174,26 +121,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
     }
   }
 
-  String _getPackageName(int packageId) {
-    final package = _packages.firstWhere(
-      (p) => p.id == packageId,
-      orElse:
-          () => TourPackage(
-            id: -1,
-            name: 'Không tìm thấy',
-            category: Category(
-              id: 0,
-              name: 'Không tìm thấy',
-              numberOfPlayer: 0,
-              sex: 0,
-            ),
-            tourId: 0,
-            price: 0,
-          ),
-    );
-    return package.name;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -222,7 +149,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading || _isLoadingPackages || _isLoadingPlayers) {
+    if (_isLoadingPlayers) {
       return const Center(child: LoadingIndicator());
     }
 
@@ -237,7 +164,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadTeams, child: const Text('Thử lại')),
+            ElevatedButton(onPressed: _loadData, child: const Text('Thử lại')),
           ],
         ),
       );
@@ -257,27 +184,31 @@ class _TeamsScreenState extends State<TeamsScreen> {
           elevation: 2,
           child: ListTile(
             title: Text(
-              team.name,
+              team.name ?? '',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (team.packageId != null)
-                  Text('Gói đăng ký: ${_getPackageName(team.packageId!)}'),
+                  Text(
+                    'Gói đăng ký: ${_packages.firstWhere((p) => p.id == team.packageId).name}',
+                  ),
                 if (team.registrationDate != null)
-                  Text('Ngày đăng ký: ${_formatDate(team.registrationDate!)}'),
+                  Text('Ngày đăng ký: ${team.registrationDate}'),
                 Text(
-                  'Trạng thái đăng ký: ${_getRegistrationStatusText(team.registrationStatus)}',
+                  'Trạng thái đăng ký: ${_getRegistrationStatusText(team.registrationStatus ?? 0)}',
                   style: TextStyle(
-                    color: _getRegistrationStatusColor(team.registrationStatus),
+                    color: _getRegistrationStatusColor(
+                      team.registrationStatus ?? 0,
+                    ),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  'Trạng thái thanh toán: ${_getPaymentStatusText(team.paymentStatus)}',
+                  'Trạng thái thanh toán: ${_getPaymentStatusText(team.paymentStatus ?? 0)}',
                   style: TextStyle(
-                    color: _getPaymentStatusColor(team.paymentStatus),
+                    color: _getPaymentStatusColor(team.paymentStatus ?? 0),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -309,64 +240,43 @@ class _TeamsScreenState extends State<TeamsScreen> {
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  String _getPlayerNameById(int playerId) {
-    final player = _players.firstWhere(
-      (p) => p.id == playerId,
-      orElse: () => Player(id: -1, name: 'Không tìm thấy'),
-    );
-    return player.name ?? '';
-  }
-
   void _showTeamDetailsDialog(BuildContext context, Team team) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(team.name),
+          title: Text(team.name ?? ''),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildInfoRow('ID', team.id),
+                _buildInfoRow('ID', team.id.toString()),
                 if (team.packageId != null)
                   _buildInfoRow(
                     'Gói đăng ký',
-                    _getPackageName(team.packageId!),
+                    _packages.firstWhere((p) => p.id == team.packageId).name,
                   ),
                 if (team.registrationDate != null)
-                  _buildInfoRow(
-                    'Ngày đăng ký',
-                    _formatDate(team.registrationDate!),
-                  ),
+                  _buildInfoRow('Ngày đăng ký', team.registrationDate ?? ''),
                 _buildInfoRow(
                   'Trạng thái đăng ký',
-                  _getRegistrationStatusText(team.registrationStatus),
+                  _getRegistrationStatusText(team.registrationStatus ?? 0),
                   textColor: _getRegistrationStatusColor(
-                    team.registrationStatus,
+                    team.registrationStatus ?? 0,
                   ),
                 ),
                 _buildInfoRow(
                   'Trạng thái thanh toán',
-                  _getPaymentStatusText(team.paymentStatus),
-                  textColor: _getPaymentStatusColor(team.paymentStatus),
+                  _getPaymentStatusText(team.paymentStatus ?? 0),
+                  textColor: _getPaymentStatusColor(team.paymentStatus ?? 0),
                 ),
                 if (team.paymentCode != null)
                   _buildInfoRow('Mã thanh toán', team.paymentCode!),
-                if (team.playerId1 != null)
-                  _buildInfoRow(
-                    'Người chơi 1',
-                    _getPlayerNameById(team.playerId1!),
-                  ),
-                if (team.playerId2 != null)
-                  _buildInfoRow(
-                    'Người chơi 2',
-                    _getPlayerNameById(team.playerId2!),
-                  ),
+                if (team.player1 != null)
+                  _buildInfoRow('Người chơi 1', team.player1!.name ?? ''),
+                if (team.player2 != null)
+                  _buildInfoRow('Người chơi 2', team.player2!.name ?? ''),
               ],
             ),
           ),
@@ -614,7 +524,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                           (p) => p.id == playerId1,
                           orElse: () => Player(id: -1, name: 'Không tìm thấy'),
                         );
-                        name = player.name ?? ''  ;
+                        name = player.name ?? '';
                       }
 
                       try {
@@ -649,7 +559,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Đã thêm đội mới')),
                         );
-                        _loadTeams();
+                        widget.fetchCallback();
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Lỗi: ${e.toString()}')),
@@ -669,12 +579,12 @@ class _TeamsScreenState extends State<TeamsScreen> {
 
   void _showEditTeamDialog(BuildContext context, Team team) {
     final formKey = GlobalKey<FormState>();
-    String name = team.name;
-    int paymentStatus = team.paymentStatus;
-    int registrationStatus = team.registrationStatus;
+    String name = team.name ?? '';
+    int paymentStatus = team.paymentStatus ?? 0;
+    int registrationStatus = team.registrationStatus ?? 0;
     String? paymentCode = team.paymentCode;
-    int? playerId1 = team.playerId1;
-    int? playerId2 = team.playerId2;
+    int? playerId1 = team.player1?.id;
+    int? playerId2 = team.player2?.id;
     int packageId = team.packageId ?? _packages.first.id;
 
     // Xác định số lượng người chơi của gói đăng ký hiện tại
@@ -923,7 +833,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                             content: Text('Đã cập nhật thông tin đội'),
                           ),
                         );
-                        _loadTeams();
+                        widget.fetchCallback();
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Lỗi: ${e.toString()}')),
@@ -964,7 +874,10 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 try {
                   final response = await appDioClient.post(
                     '/tournament/delete_team',
-                    data: {'id': team.id, 'tournament_id': widget.tournament.id},
+                    data: {
+                      'id': team.id,
+                      'tournament_id': widget.tournament.id,
+                    },
                     options: Options(
                       headers: {'X-Api-Key': ApiConstants.apiKey},
                     ),
@@ -975,14 +888,14 @@ class _TeamsScreenState extends State<TeamsScreen> {
                     throw Exception(
                       response.data['message'] ?? 'Không thể xóa đội',
                     );
-                  } 
+                  }
 
                   if (!mounted) return;
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(const SnackBar(content: Text('Đã xóa đội')));
-                  _loadTeams();
+                  widget.fetchCallback();
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Lỗi: ${e.toString()}')),

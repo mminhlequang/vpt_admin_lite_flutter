@@ -1,64 +1,37 @@
-import 'match.dart';
+import 'models.dart';
 
 class Round {
-  final int id;
-  final int? tournamentId;
-  final String name;
-  final DateTime startTime;
-  final List<Match> matches;
+  int? id;
+  String? name;
+  String? startTime;
+  List<TournamentMatch>? matches;
 
-  Round({
-    required this.id,
-    required this.tournamentId,
-    required this.name,
-    required this.startTime,
-    this.matches = const [],
-  });
+  Round({this.id, this.name, this.startTime, this.matches});
 
-  factory Round.fromJson(Map<String, dynamic> json) {
-    List<Match> matchesList = [];
-    if (json['matches'] != null) {
-      matchesList =
-          (json['matches'] as List)
-              .map((matchJson) => Match.fromJson(matchJson))
-              .toList();
-    }
+  Round.fromJson(Map<String, dynamic> json) {
+    id = json["id"];
+    name = json["name"];
+    startTime = json["start_time"];
+    matches =
+        json["matches"] is List
+            ? List<TournamentMatch>.from(
+              json["matches"].map((x) => TournamentMatch.fromJson(x)),
+            )
+            : null;
+  }
 
-    return Round(
-      id: json['id'] as int,
-      tournamentId: json['tournament_id'],
-      name: json['name'] as String,
-      startTime:
-          json['start_time'] != null
-              ? DateTime.parse(json['start_time'] as String)
-              : DateTime.now(),
-      matches: matchesList,
-    );
+  static List<Round> fromList(List<Map<String, dynamic>> list) {
+    return list.map(Round.fromJson).toList();
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'tournament_id': tournamentId,
-      'name': name,
-      'start_time': startTime.toIso8601String(),
-      'matches': matches.map((match) => match.toJson()).toList(),
-    };
-  }
-
-  Round copyWith({
-    int? id,
-    int? tournamentId,
-    String? name,
-    DateTime? startTime,
-    List<Match>? matches,
-  }) {
-    return Round(
-      id: id ?? this.id,
-      tournamentId: tournamentId ?? this.tournamentId,
-      name: name ?? this.name,
-      startTime: startTime ?? this.startTime,
-      matches: matches ?? this.matches,
-    );
+    final Map<String, dynamic> _data = <String, dynamic>{};
+    _data["id"] = id;
+    _data["name"] = name;
+    _data["start_time"] = startTime;
+    if (matches != null) {
+      _data["matches"] = matches!.map((e) => e.toJson()).toList();
+    }
+    return _data;
   }
 }

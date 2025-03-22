@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:internal_core/widgets/widgets.dart';
+import 'package:vpt_admin_lite_flutter/screens/tournaments/rounds_screen.dart';
 import '../../../models/tournament.dart';
 import '../../../utils/constants.dart';
 import 'package:intl/intl.dart';
@@ -9,12 +10,14 @@ class TournamentInfoTab extends StatelessWidget {
   final Tournament tournament;
   final Function() onEdit;
   final Function() onExportSchedule;
+  final VoidCallback fetchTournament;
 
   const TournamentInfoTab({
     super.key,
     required this.tournament,
     required this.onEdit,
     required this.onExportSchedule,
+    required this.fetchTournament,
   });
 
   @override
@@ -25,20 +28,18 @@ class TournamentInfoTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildTournamentHeader(),
-          const SizedBox(height: 24),
-          if (tournament.avatar != null) ...[
-            _buildTournamentImage(),
-            const SizedBox(height: 24),
-          ],
+          const SizedBox(height: 16),
+
           _buildTournamentDetails(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           if (tournament.content != null) ...[
             _buildTournamentDescription(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
           ],
-          _buildScheduleInfo(),
-          const SizedBox(height: 24),
+          _buildRoundsTab(context),
+          const SizedBox(height: 16),
           _buildActions(),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -47,49 +48,98 @@ class TournamentInfoTab extends StatelessWidget {
   Widget _buildTournamentHeader() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
-            const Icon(Icons.emoji_events, size: 48, color: Colors.amber),
-            const SizedBox(height: 16),
-            Text(
-              tournament.name ?? '',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            // _buildStatusBadge(tournament.status ?? TournamentStatus.preparing),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            if (tournament.avatar != null) ...[
+              WidgetAppImage(
+                imageUrl: tournament.avatar,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                radius: 12,
+              ),
+              const SizedBox(height: 16),
+            ],
+            Column(
               children: [
-                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
+                const SizedBox(width: 16.0),
                 Text(
-                  '${tournament.startDate} - ${tournament.endDate}',
-                  style: TextStyle(color: Colors.grey[600]),
+                  tournament.name ?? '',
+                  style: const TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8.0),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 16.0),
+                    const SizedBox(width: 4.0),
+                    Text(
+                      '${tournament.startDate} - ${tournament.endDate}',
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4.0),
+                if (tournament.city != null)
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 16.0),
+                      const SizedBox(width: 4.0),
+                      Text(
+                        tournament.city!,
+                        style: TextStyle(color: Colors.grey[700]),
+                      ),
+                    ],
+                  ),
+                const SizedBox(height: 4.0),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6.0,
+                        vertical: 2.0,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.greenAccent.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4.0),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.type_specimen,
+                            size: 14.0,
+                            color: Colors.greenAccent,
+                          ),
+                          const SizedBox(width: 2.0),
+                          Text(
+                            tournament.category?.numberOfPlayer == 1
+                                ? 'Đấu đơn'
+                                : 'Đấu đôi',
+                            style: TextStyle(
+                              color: Colors.greenAccent,
+                              fontSize: 12.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8.0),
+                    if (tournament.genderRestriction != null)
+                      ..._buildGenderBadges(tournament.category?.sex ?? 2),
+                    Spacer(),
+                    _buildStatusBadge(tournament.status!),
+                  ],
                 ),
               ],
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTournamentImage() {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          WidgetAppImage(
-            imageUrl: tournament.avatar,
-            height: 200,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
-        ],
       ),
     );
   }
@@ -178,97 +228,112 @@ class TournamentInfoTab extends StatelessWidget {
     );
   }
 
-  Widget _buildScheduleInfo() {
-    // Thông tin về lịch trình sắp tới
-    final upcomingMatches = [];
-    // tournament.matches
-    //     .where((m) => m.status == MatchStatus.scheduled)
-    //     .toList();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Lịch trình sắp tới',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+  Widget _buildRoundsTab(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                const Icon(Icons.access_time, size: 48, color: Colors.indigo),
+                const SizedBox(height: 16),
+                Text(
+                  'Quản lý vòng đấu',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tổ chức các vòng đấu, phân chia trận đấu và theo dõi tiến độ giải',
+                  style: TextStyle(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => _navigateToRoundsScreen(context, tournament),
+                  icon: const Icon(Icons.sports),
+                  label: const Text('Quản lý vòng đấu'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const Divider(),
-            if (upcomingMatches.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(child: Text('Không có trận đấu sắp tới')),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: upcomingMatches.length,
-                itemBuilder: (context, index) {
-                  final match = upcomingMatches[index];
-                  return ListTile(
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            match.team1.name,
-                            textAlign: TextAlign.right,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Text(
-                            'VS',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            match.team2.name,
-                            textAlign: TextAlign.left,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                    subtitle: Column(
-                      children: [
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${match.scheduledTime!.day}/${match.scheduledTime!.month} ${match.scheduledTime!.hour}:${match.scheduledTime!.minute.toString().padLeft(2, '0')}',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                            const SizedBox(width: 16),
-                            Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              match.courtNumber ?? 'TBD',
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Lưu ý khi quản lý vòng đấu:',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        _buildRoundsInfoList(),
+      ],
+    );
+  }
+
+  Widget _buildRoundsInfoList() {
+    final tips = [
+      'Thiết lập các vòng đấu khác nhau như vòng loại, tứ kết, bán kết và chung kết',
+      'Phân chia và sắp xếp các trận đấu trong mỗi vòng',
+      'Cập nhật kết quả và theo dõi tiến độ của các trận đấu',
+      'Tạo trận đấu tự động hoặc thủ công từ các đội tham gia',
+      'Tạo lịch trình cho các trận đấu với thời gian và địa điểm cụ thể',
+    ];
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: tips.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.indigo,
+                  ),
+                ),
               ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  tips[index],
+                  style: TextStyle(color: Colors.grey[800]),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _navigateToRoundsScreen(BuildContext context, Tournament tournament) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RoundsScreen(
+          tournament: tournament,
+          fetchTournament: fetchTournament,
         ),
       ),
     );
@@ -283,8 +348,8 @@ class TournamentInfoTab extends StatelessWidget {
           icon: const Icon(Icons.calendar_today),
           label: const Text('Xuất lịch'),
         ),
-        // if (tournament.status == TournamentStatus.preparing ||
-        //     tournament.status == TournamentStatus.ongoing)
+        if (tournament.status == TournamentStatus.preparing ||
+            tournament.status == TournamentStatus.ongoing)
           ElevatedButton.icon(
             onPressed: onEdit,
             icon: const Icon(Icons.edit),
@@ -313,15 +378,15 @@ class TournamentInfoTab extends StatelessWidget {
 
     switch (status) {
       case TournamentStatus.preparing:
-        color = Colors.orange;
-        text = 'Chuẩn bị';
+        color = Colors.blue;
+        text = 'Đang chuẩn bị';
         break;
       case TournamentStatus.ongoing:
         color = Colors.green;
         text = 'Đang diễn ra';
         break;
       case TournamentStatus.completed:
-        color = Colors.blue;
+        color = Colors.purple;
         text = 'Đã kết thúc';
         break;
       case TournamentStatus.cancelled:
@@ -331,29 +396,84 @@ class TournamentInfoTab extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       decoration: BoxDecoration(
         color: color.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(4.0),
         border: Border.all(color: color),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
-      ),
+      child: Text(text, style: TextStyle(color: color, fontSize: 12.0)),
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+  //sex = 1: nam, 2: nữ, 3: nam/nữ
+  List<Widget> _buildGenderBadges(int sex) {
+    List<Widget> badges = [];
+
+    List<String> genders = [];
+
+    if (sex == 1) {
+      genders = ['male'];
+    } else if (sex == 2) {
+      genders = ['female'];
+    } else {
+      genders = ['mixed'];
+    }
+
+    for (String gender in genders) {
+      late Color color;
+      late IconData icon;
+
+      switch (gender.toLowerCase()) {
+        case 'male':
+          color = Colors.blue;
+          icon = Icons.male;
+          break;
+        case 'female':
+          color = Colors.pink;
+          icon = Icons.female;
+          break;
+        case 'mixed':
+        default:
+          color = Colors.purple;
+          icon = Icons.people;
+          break;
+      }
+
+      badges.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(4.0),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14.0, color: color),
+              const SizedBox(width: 2.0),
+              Text(
+                _getGenderText(gender),
+                style: TextStyle(color: color, fontSize: 12.0),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return badges;
   }
 
-  String _getCategoryName(int categoryId) {
-    // TODO: Lấy tên danh mục từ API hoặc cache
-    return 'Danh mục #$categoryId';
+  String _getGenderText(String gender) {
+    switch (gender.toLowerCase()) {
+      case 'male':
+        return 'Nam';
+      case 'female':
+        return 'Nữ';
+      case 'mixed':
+      default:
+        return 'Nam/Nữ';
+    }
   }
 }

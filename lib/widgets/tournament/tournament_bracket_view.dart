@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:internal_core/internal_core.dart';
 import 'dart:math' as math;
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
@@ -8,7 +9,7 @@ import '../../models/team.dart';
 
 class TournamentBracketView extends StatelessWidget {
   final Tournament tournament;
-  final Function(Match) onMatchTap;
+  final Function(TournamentMatch) onMatchTap;
 
   const TournamentBracketView({
     super.key,
@@ -75,12 +76,12 @@ class TournamentBracketView extends StatelessWidget {
     return math.max((teamCount - byeCount) ~/ 2, 1);
   }
 
-  List<List<Match>> _organizeMatchesByRound() {
+  List<List<TournamentMatch>> _organizeMatchesByRound() {
     // Lấy tất cả các trận đấu từ tất cả các vòng
-    final allMatches = <Match>[];
+    final allMatches = <TournamentMatch>[];
     if (tournament.rounds != null) {
       for (final round in tournament.rounds!) {
-        allMatches.addAll(round.matches);
+        allMatches.addAll(round.matches ?? []);
       }
     }
 
@@ -95,7 +96,7 @@ class TournamentBracketView extends StatelessWidget {
     final maxTeams = math.pow(2, roundCount).toInt();
 
     // Xây dựng bảng phân nhánh
-    final List<List<Match>> rounds = [];
+    final List<List<TournamentMatch>> rounds = [];
 
     // Tạo danh sách đội dự kiến
     List<Team> allTeams = [];
@@ -109,7 +110,7 @@ class TournamentBracketView extends StatelessWidget {
     while (allTeams.length < expectedTeamCount) {
       allTeams.add(
         Team(
-          id: 'placeholder_team_${allTeams.length}',
+          uniqueId: 'placeholder_team_${allTeams.length}',
           name: 'TBD ${allTeams.length + 1}',
         ),
       );
@@ -118,7 +119,7 @@ class TournamentBracketView extends StatelessWidget {
     // Thêm các đội placeholder cho đủ số lượng là lũy thừa của 2 (nếu cần)
     while (allTeams.length < maxTeams) {
       allTeams.add(
-        Team(id: 'placeholder_team_${allTeams.length}', name: 'TBD'),
+        Team(uniqueId: 'placeholder_team_${allTeams.length}', name: 'TBD'),
       );
     }
 
@@ -126,13 +127,17 @@ class TournamentBracketView extends StatelessWidget {
     allTeams = _seedTeams(allTeams);
 
     // Xây dựng vòng đầu tiên
-    final firstRoundMatches = <Match>[];
+    final firstRoundMatches = <TournamentMatch>[];
     for (int i = 0; i < allTeams.length; i += 2) {
       final team1 = allTeams[i];
       final team2 = allTeams[i + 1];
 
       // Tìm trận đấu thực tế giữa hai đội này nếu có
-      Match? actualMatch = _findMatchBetweenTeams(team1, team2, allMatches);
+      TournamentMatch? actualMatch = _findMatchBetweenTeams(
+        team1,
+        team2,
+        allMatches,
+      );
 
       if (actualMatch != null) {
         // Nếu đã có trận đấu thực tế
@@ -145,20 +150,13 @@ class TournamentBracketView extends StatelessWidget {
                 : 0;
 
         firstRoundMatches.add(
-          Match(
+          TournamentMatch(
             id: i ~/ 2, // Sử dụng số nguyên trực tiếp thay vì int.parse()
-            roundId: roundId, // Vòng đầu tiên
+            round: Round(id: roundId), // Vòng đầu tiên
             team1: team1,
             team2: team2,
-            team1Id:
-                team1.id.startsWith('placeholder')
-                    ? null
-                    : int.tryParse(team1.id),
-            team2Id:
-                team2.id.startsWith('placeholder')
-                    ? null
-                    : int.tryParse(team2.id),
-            scheduledTime: DateTime.now(),
+
+            scheduledTime: DateTime.now().formatDate(),
             matchStatus: MatchStatus.pending,
           ),
         );
@@ -169,7 +167,7 @@ class TournamentBracketView extends StatelessWidget {
     // Xây dựng các vòng tiếp theo
     for (int r = 1; r < roundCount; r++) {
       final previousRound = rounds[r - 1];
-      final currentRoundMatches = <Match>[];
+      final currentRoundMatches = <TournamentMatch>[];
 
       for (int i = 0; i < previousRound.length; i += 2) {
         if (i + 1 >= previousRound.length) {
@@ -182,22 +180,26 @@ class TournamentBracketView extends StatelessWidget {
 
         // Xác định đội tiến vào vòng tiếp theo
         Team? team1;
-        if (match1.winnerId != null &&
+        if (match1.winner != null &&
             match1.team1 != null &&
             match1.team2 != null) {
           team1 =
-              match1.winnerId == match1.team1Id ? match1.team1 : match1.team2;
+              match1.winner?.id == match1.team1?.id
+                  ? match1.team1
+                  : match1.team2;
         } else {
           team1 =
               match1.matchStatus == MatchStatus.completed ? null : match1.team1;
         }
 
         Team? team2;
-        if (match2.winnerId != null &&
+        if (match2.winner != null &&
             match2.team1 != null &&
             match2.team2 != null) {
           team2 =
-              match2.winnerId == match2.team1Id ? match2.team1 : match2.team2;
+              match2.winner?.id == match2.team1?.id
+                  ? match2.team1
+                  : match2.team2;
         } else {
           team2 =
               match2.matchStatus == MatchStatus.completed ? null : match2.team1;
@@ -205,20 +207,24 @@ class TournamentBracketView extends StatelessWidget {
 
         if (team1 == null || team1.name == 'TBD') {
           team1 = Team(
-            id: 'winner_of_${match1.id}',
+            uniqueId: 'winner_of_${match1.id}',
             name: 'Đội thắng ' + _getMatchDisplayName(match1),
           );
         }
 
         if (team2 == null || team2.name == 'TBD') {
           team2 = Team(
-            id: 'winner_of_${match2.id}',
+            uniqueId: 'winner_of_${match2.id}',
             name: 'Đội thắng ' + _getMatchDisplayName(match2),
           );
         }
 
         // Tìm trận đấu thực tế giữa hai đội này nếu có
-        Match? actualMatch = _findMatchBetweenTeams(team1, team2, allMatches);
+        TournamentMatch? actualMatch = _findMatchBetweenTeams(
+          team1,
+          team2,
+          allMatches,
+        );
 
         if (actualMatch != null) {
           // Nếu đã có trận đấu thực tế
@@ -229,30 +235,21 @@ class TournamentBracketView extends StatelessWidget {
           if (tournament.rounds != null && tournament.rounds!.isNotEmpty) {
             roundId =
                 r < tournament.rounds!.length
-                    ? tournament.rounds![r].id
-                    : tournament.rounds!.last.id;
+                    ? tournament.rounds![r].id!
+                    : tournament.rounds!.last.id!;
           }
 
           currentRoundMatches.add(
-            Match(
+            TournamentMatch(
               id:
                   1000 +
                   r * 100 +
                   i ~/ 2, // Tạo ID duy nhất không sử dụng ký tự đặc biệt
-              roundId: roundId,
+              round: Round(id: roundId),
               team1: team1,
               team2: team2,
-              team1Id:
-                  team1.id.startsWith('winner_of') ||
-                          team1.id.startsWith('placeholder')
-                      ? null
-                      : int.tryParse(team1.id),
-              team2Id:
-                  team2.id.startsWith('winner_of') ||
-                          team2.id.startsWith('placeholder')
-                      ? null
-                      : int.tryParse(team2.id),
-              scheduledTime: DateTime.now(),
+
+              scheduledTime: DateTime.now().formatDate(),
               matchStatus: MatchStatus.pending,
             ),
           );
@@ -265,23 +262,24 @@ class TournamentBracketView extends StatelessWidget {
   }
 
   // Tìm trận đấu thực tế giữa hai đội
-  Match? _findMatchBetweenTeams(
+  TournamentMatch? _findMatchBetweenTeams(
     Team team1,
     Team team2,
-    List<Match> allMatches,
+    List<TournamentMatch> allMatches,
   ) {
-    if (team1.id.startsWith('placeholder') ||
-        team2.id.startsWith('placeholder') ||
-        team1.id.startsWith('winner_of') ||
-        team2.id.startsWith('winner_of')) {
+    if (team1.uniqueId?.startsWith('placeholder') ??
+        false ||
+            (team2.uniqueId?.startsWith('placeholder') ?? false) ||
+            (team1.uniqueId?.startsWith('winner_of') ?? false) ||
+            (team2.uniqueId?.startsWith('winner_of') ?? false)) {
       return null;
     }
 
     for (var match in allMatches) {
-      if ((match.team1Id.toString() == team1.id &&
-              match.team2Id.toString() == team2.id) ||
-          (match.team1Id.toString() == team2.id &&
-              match.team2Id.toString() == team1.id)) {
+      if ((match.team1?.id.toString() == team1.id &&
+              match.team2?.id.toString() == team2.id) ||
+          (match.team1?.id.toString() == team2.id &&
+              match.team2?.id.toString() == team1.id)) {
         return match;
       }
     }
@@ -289,7 +287,7 @@ class TournamentBracketView extends StatelessWidget {
   }
 
   // Lấy tên hiển thị cho trận đấu
-  String _getMatchDisplayName(Match match) {
+  String _getMatchDisplayName(TournamentMatch match) {
     return 'Trận ${match.id}';
   }
 
@@ -303,7 +301,7 @@ class TournamentBracketView extends StatelessWidget {
 
     // Chỉ lấy các team không phải placeholder
     for (var team in teams) {
-      if (!team.id.startsWith('placeholder')) {
+      if (!(team.uniqueId?.startsWith('placeholder') ?? false)) {
         realTeams.add(team);
       } else {
         placeholderTeams.add(team);
@@ -372,7 +370,10 @@ class TournamentBracketView extends StatelessWidget {
             result[i] = placeholderTeams[placeholderIndex++];
           } else {
             // Tạo một đội placeholder mới nếu cần
-            result[i] = Team(id: 'placeholder_team_extra_${i}', name: 'TBD');
+            result[i] = Team(
+              uniqueId: 'placeholder_team_extra_${i}',
+              name: 'TBD',
+            );
           }
         }
       }
@@ -444,7 +445,7 @@ class TournamentBracketView extends StatelessWidget {
     );
   }
 
-  Widget _buildRoundMatches(List<Match> matches, int roundIndex) {
+  Widget _buildRoundMatches(List<TournamentMatch> matches, int roundIndex) {
     // Tính toán chiều cao có sẵn cho các trận đấu
     final availableHeight =
         _calculateBracketHeight() - 40; // Trừ đi chiều cao của header
@@ -471,16 +472,25 @@ class TournamentBracketView extends StatelessWidget {
     );
   }
 
-  Widget _buildMatchTile(Match match, int roundIndex, int matchIndex) {
+  Widget _buildMatchTile(
+    TournamentMatch match,
+    int roundIndex,
+    int matchIndex,
+  ) {
     final isCompleted = match.matchStatus == MatchStatus.completed;
     final bool isPlaceholder =
-        match.team1?.id.startsWith('placeholder') == true ||
-        match.team2?.id.startsWith('placeholder') == true ||
-        match.team1?.id.startsWith('winner_of') == true ||
-        match.team2?.id.startsWith('winner_of') == true;
+        (match.team1?.uniqueId?.startsWith('placeholder') ?? false) ||
+        (match.team2?.uniqueId?.startsWith('placeholder') ?? false) ||
+        (match.team1?.uniqueId?.startsWith('winner_of') ?? false) ||
+        (match.team2?.uniqueId?.startsWith('winner_of') ?? false);
 
     return GestureDetector(
-      onTap: isPlaceholder ? null : () => onMatchTap(match),
+      onTap: () {
+        print('isPlaceholder=$isPlaceholder ${match.toJson()}');
+        if (isPlaceholder) return;
+
+        onMatchTap(match);
+      },
       child: Container(
         width: 180.0,
         margin: const EdgeInsets.symmetric(vertical: 8),
@@ -532,7 +542,7 @@ class TournamentBracketView extends StatelessWidget {
                   ),
                   if (!isPlaceholder && match.scheduledTime != null)
                     Text(
-                      DateFormat('dd/MM HH:mm').format(match.scheduledTime),
+                      match.scheduledTime ?? "",
                       style: TextStyle(
                         fontSize: 12,
                         color: isCompleted ? Colors.green : Colors.grey[600],
@@ -547,20 +557,26 @@ class TournamentBracketView extends StatelessWidget {
                 children: [
                   _buildTeamRow(
                     match.team1?.name ?? 'TBD',
-                    isWinner: isCompleted && match.winnerId == match.team1Id,
+                    isWinner:
+                        isCompleted && match.winner?.id == match.team1?.id,
                     score: isCompleted ? match.team1Score : null,
                     isPlaceholder:
-                        match.team1?.id.startsWith('placeholder') == true ||
-                        match.team1?.id.startsWith('winner_of') == true,
+                        (match.team1?.uniqueId?.startsWith('placeholder') ??
+                            false) ||
+                        (match.team1?.uniqueId?.startsWith('winner_of') ??
+                            false),
                   ),
                   const Divider(height: 16),
                   _buildTeamRow(
                     match.team2?.name ?? 'TBD',
-                    isWinner: isCompleted && match.winnerId == match.team2Id,
+                    isWinner:
+                        isCompleted && match.winner?.id == match.team2?.id,
                     score: isCompleted ? match.team2Score : null,
                     isPlaceholder:
-                        match.team2?.id.startsWith('placeholder') == true ||
-                        match.team2?.id.startsWith('winner_of') == true,
+                        (match.team2?.uniqueId?.startsWith('placeholder') ??
+                            false) ||
+                        (match.team2?.uniqueId?.startsWith('winner_of') ??
+                            false),
                   ),
                 ],
               ),
@@ -621,7 +637,7 @@ class TournamentBracketView extends StatelessWidget {
 // Lớp vẽ các đường kết nối giữa các trận đấu
 class BracketPainter extends CustomPainter {
   final Tournament tournament;
-  final List<List<Match>> rounds;
+  final List<List<TournamentMatch>> rounds;
 
   BracketPainter({required this.tournament, required this.rounds});
 

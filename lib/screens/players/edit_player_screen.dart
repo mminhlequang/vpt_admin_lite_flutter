@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:internal_core/internal_core.dart';
 import 'package:intl/intl.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import 'package:vpt_admin_lite_flutter/widgets/player/player_list_item.dart';
@@ -244,7 +245,7 @@ class _EditPlayerScreenState extends State<EditPlayerScreen> {
                                     : (_avatarUrl != null &&
                                             _avatarUrl!.isNotEmpty
                                         ? NetworkImage(
-                                              correctUrlImage(_avatarUrl),
+                                              appImageCorrectUrl(_avatarUrl!),
                                             )
                                             as ImageProvider
                                         : null),
