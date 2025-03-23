@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:internal_core/internal_core.dart';
-import 'package:vpt_admin_lite_flutter/config/routes.dart';
 import 'package:vpt_admin_lite_flutter/utils/utils.dart';
 import '../../models/tournament.dart';
 import '../../utils/constants.dart';
 import '../../widgets/loading_indicator.dart';
 import 'create_tournament_screen.dart';
+import 'tournament_detail_screen.dart';
 import 'tournament_edit_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
@@ -421,7 +421,7 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
       default:
         return 'Nam/Nữ';
     }
-  } 
+  }
 
   void _navigateToCreateTournament() {
     Navigator.push(
@@ -435,10 +435,11 @@ class _TournamentsScreenState extends State<TournamentsScreen> {
   }
 
   void _navigateToTournamentDetail(Tournament tournament) {
-    Navigator.pushNamed(
+    Navigator.push(
       context,
-      AppRoutes.tournamentDetail,
-      arguments: tournament,
+      MaterialPageRoute(
+        builder: (context) => TournamentDetailScreen(tournament: tournament),
+      ),
     );
   }
 

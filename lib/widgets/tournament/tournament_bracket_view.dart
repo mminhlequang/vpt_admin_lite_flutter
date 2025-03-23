@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:internal_core/internal_core.dart';
 import 'dart:math' as math;
-import 'package:intl/intl.dart';
 import '../../models/models.dart';
-import '../../models/tournament.dart';
-import '../../models/match.dart';
-import '../../models/team.dart';
 
 class TournamentBracketView extends StatelessWidget {
   final Tournament tournament;
